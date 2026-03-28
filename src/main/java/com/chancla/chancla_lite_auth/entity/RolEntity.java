@@ -12,6 +12,7 @@ import java.time.LocalDateTime;
 @Table(name = "roles")
 @AllArgsConstructor
 @NoArgsConstructor
+//Para definir alcance
 public class RolEntity {
 
     @Id
