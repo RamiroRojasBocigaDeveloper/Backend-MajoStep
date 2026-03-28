@@ -122,7 +122,8 @@ public class ProductoServiceImpl implements ProductoService {
     @Override
     @Transactional(readOnly = true)
     public List<ProductoResponse> buscarPorNombre(String nombre) {
-        return productoMapper.toResponseList(productoRepository.findByNombreContainingIgnoreCase(nombre));
+        String term = "%" + nombre.toLowerCase() + "%";
+        return productoMapper.toResponseList(productoRepository.buscarDinamico(term));
     }
 
     @Override
