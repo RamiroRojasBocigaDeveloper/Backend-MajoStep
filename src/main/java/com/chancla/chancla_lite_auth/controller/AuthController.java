@@ -37,7 +37,7 @@ public class AuthController {
         if (usuario != null && passwordEncoder.matches(loginRequest.getPassword(), usuario.getPassword())) {
             String token = jwtTokenProvider.generarToken(usuario.getEmail());
             String rolNombre = usuario.getRol() != null ? usuario.getRol().getNombre() : "SIN_ROL";
-            return ResponseEntity.ok(new AuthResponse(token, usuario.getEmail(), usuario.getNombre(), rolNombre));
+            return ResponseEntity.ok(new AuthResponse(token, usuario.getId(), usuario.getEmail(), usuario.getNombre(), rolNombre));
         }
 
         return ResponseEntity.status(HttpStatus.UNAUTHORIZED).build();
