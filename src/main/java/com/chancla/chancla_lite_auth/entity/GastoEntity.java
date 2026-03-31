@@ -25,6 +25,10 @@ public class GastoEntity {
     @JoinColumn(name = "categoria_gasto_id", nullable = false)
     private CategoriaGastoEntity categoriaGasto;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "subcategoria_gasto_id", nullable = true)
+    private SubcategoriaGastoEntity subcategoriaGasto;
+
     @Column(nullable = false, length = 200)
     private String descripcion;
 

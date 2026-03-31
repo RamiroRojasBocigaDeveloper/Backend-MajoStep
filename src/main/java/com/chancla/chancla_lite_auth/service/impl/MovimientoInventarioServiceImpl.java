@@ -39,31 +39,16 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
         TipoMovimiento tipo = TipoMovimiento.valueOf(request.getTipo().toUpperCase());
 
-        // Actualizar Stock del Producto
-        int nuevoStock = producto.getStockActual();
-        switch (tipo) {
-            case ENTRADA:
-                nuevoStock += request.getCantidad();
-                break;
-            case SALIDA:
-                if (producto.getStockActual() < request.getCantidad()) {
-                    throw new RuntimeException("Stock insuficiente para realizar salida manual.");
-                }
-                nuevoStock -= request.getCantidad();
-                break;
-            case AJUSTE:
-                // El motivo debería indicar si es positivo o negativo
-                // O podemos asumir que la cantidad ya es absoluta y el motivo lo explica
-                // Por diseño simple: AJUSTE aquí sumará. Si quieren restar, deberían enviar SALIDA con motivo Ajuste.
-                // O podemos permitir cantidad negativa en Ajuste si lo cambiamos en el DTO.
-                // Usaremos: ENTRADA para sumar, SALIDA para restar. AJUSTE para corregir a un valor fijo? 
-                // No, AJUSTE sumará por ahora.
-                nuevoStock += request.getCantidad(); 
-                break;
+        // Validación previa para asegurar que la acción es posible antes de que el trigger la ejecte
+        if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.AJUSTE) {
+        	// Aquí AJUSTE se maneja como correción. Para mantener la misma lógica de antes (salida):
+            if (tipo == TipoMovimiento.SALIDA && producto.getStockActual() < request.getCantidad()) {
+                throw new RuntimeException("Stock insuficiente para realizar salida manual.");
+            }
         }
 
-        producto.setStockActual(nuevoStock);
-        productoRepository.save(producto);
+        // Ya NO guardamos el producto manualmente. 
+        // El guardado del movimiento invocará el trigger trg_mov_inv_ai y actualizará el stock en la BD automáticamente.
 
         // Crear Movimiento
         MovimientoInventarioEntity movimento = movimientoInventarioMapper.toEntity(request);

@@ -10,6 +10,8 @@ import com.chancla.chancla_lite_auth.mapper.GastoMapper;
 import com.chancla.chancla_lite_auth.repository.CategoriaGastoRepository;
 import com.chancla.chancla_lite_auth.repository.GastoRepository;
 import com.chancla.chancla_lite_auth.repository.SesionTrabajoRepository;
+import com.chancla.chancla_lite_auth.repository.SubcategoriaGastoRepository;
+import com.chancla.chancla_lite_auth.entity.SubcategoriaGastoEntity;
 import com.chancla.chancla_lite_auth.service.GastoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -25,16 +27,19 @@ public class GastoServiceImpl implements GastoService {
     private final GastoRepository gastoRepository;
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final CategoriaGastoRepository categoriaGastoRepository;
+    private final SubcategoriaGastoRepository subcategoriaGastoRepository;
     private final GastoMapper gastoMapper;
 
     @Autowired
     public GastoServiceImpl(GastoRepository gastoRepository,
                             SesionTrabajoRepository sesionTrabajoRepository,
                             CategoriaGastoRepository categoriaGastoRepository,
+                            SubcategoriaGastoRepository subcategoriaGastoRepository,
                             GastoMapper gastoMapper) {
         this.gastoRepository = gastoRepository;
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.categoriaGastoRepository = categoriaGastoRepository;
+        this.subcategoriaGastoRepository = subcategoriaGastoRepository;
         this.gastoMapper = gastoMapper;
     }
 
@@ -73,9 +78,18 @@ public class GastoServiceImpl implements GastoService {
         CategoriaGastoEntity categoria = categoriaGastoRepository.findById(request.getCategoriaGastoId())
                 .orElseThrow(() -> new RuntimeException("Categoría de gasto no encontrada."));
 
+        SubcategoriaGastoEntity subcategoria = null;
+        if (request.getSubcategoriaGastoId() != null) {
+            subcategoria = subcategoriaGastoRepository.findById(request.getSubcategoriaGastoId())
+                    .orElseThrow(() -> new RuntimeException("Subcategoría de gasto no encontrada."));
+        }
+
         GastoEntity nuevoGasto = gastoMapper.toEntity(request);
         nuevoGasto.setSesion(sesion);
         nuevoGasto.setCategoriaGasto(categoria);
+        if (subcategoria != null) {
+            nuevoGasto.setSubcategoriaGasto(subcategoria);
+        }
 
         return gastoMapper.toResponse(gastoRepository.save(nuevoGasto));
     }
@@ -95,6 +109,16 @@ public class GastoServiceImpl implements GastoService {
             CategoriaGastoEntity nuevaCategoria = categoriaGastoRepository.findById(request.getCategoriaGastoId())
                     .orElseThrow(() -> new RuntimeException("Nueva categoría no encontrada."));
             existente.setCategoriaGasto(nuevaCategoria);
+        }
+
+        if (request.getSubcategoriaGastoId() != null) {
+            if (existente.getSubcategoriaGasto() == null || !existente.getSubcategoriaGasto().getId().equals(request.getSubcategoriaGastoId())) {
+                SubcategoriaGastoEntity nuevaSubcategoria = subcategoriaGastoRepository.findById(request.getSubcategoriaGastoId())
+                        .orElseThrow(() -> new RuntimeException("Nueva subcategoría no encontrada."));
+                existente.setSubcategoriaGasto(nuevaSubcategoria);
+            }
+        } else {
+            existente.setSubcategoriaGasto(null);
         }
 
         gastoMapper.updateEntityFromRequest(request, existente);

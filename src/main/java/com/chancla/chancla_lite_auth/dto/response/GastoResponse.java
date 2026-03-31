@@ -8,6 +8,8 @@ public class GastoResponse {
     private Long sesionId;
     private Integer categoriaGastoId;
     private String categoriaGastoNombre;
+    private Long subcategoriaGastoId;
+    private String subcategoriaGastoNombre;
     private String descripcion;
     private Double monto;
     private LocalDateTime createdAt;
@@ -27,6 +29,12 @@ public class GastoResponse {
 
     public String getCategoriaGastoNombre() { return categoriaGastoNombre; }
     public void setCategoriaGastoNombre(String categoriaGastoNombre) { this.categoriaGastoNombre = categoriaGastoNombre; }
+
+    public Long getSubcategoriaGastoId() { return subcategoriaGastoId; }
+    public void setSubcategoriaGastoId(Long subcategoriaGastoId) { this.subcategoriaGastoId = subcategoriaGastoId; }
+
+    public String getSubcategoriaGastoNombre() { return subcategoriaGastoNombre; }
+    public void setSubcategoriaGastoNombre(String subcategoriaGastoNombre) { this.subcategoriaGastoNombre = subcategoriaGastoNombre; }
 
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }

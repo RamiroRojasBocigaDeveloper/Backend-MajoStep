@@ -21,6 +21,8 @@ public class GastoRequest {
     @Positive(message = "El monto debe ser mayor a cero")
     private Double monto;
 
+    private Long subcategoriaGastoId;
+
     public GastoRequest() {
     }
 
@@ -29,6 +31,9 @@ public class GastoRequest {
 
     public Integer getCategoriaGastoId() { return categoriaGastoId; }
     public void setCategoriaGastoId(Integer categoriaGastoId) { this.categoriaGastoId = categoriaGastoId; }
+
+    public Long getSubcategoriaGastoId() { return subcategoriaGastoId; }
+    public void setSubcategoriaGastoId(Long subcategoriaGastoId) { this.subcategoriaGastoId = subcategoriaGastoId; }
 
     public String getDescripcion() { return descripcion; }
     public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
