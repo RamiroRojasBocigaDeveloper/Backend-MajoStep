@@ -4,7 +4,6 @@ import com.chancla.chancla_lite_auth.dto.request.VentaRequest;
 import com.chancla.chancla_lite_auth.dto.response.VentaResponse;
 import com.chancla.chancla_lite_auth.entity.*;
 import com.chancla.chancla_lite_auth.enums.EstadoSesion;
-import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
 import com.chancla.chancla_lite_auth.mapper.VentaMapper;
 import com.chancla.chancla_lite_auth.repository.*;
 import com.chancla.chancla_lite_auth.service.VentaService;
@@ -27,7 +26,6 @@ public class VentaServiceImpl implements VentaService {
     private final ProductoRepository productoRepository;
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final MetodoPagoRepository metodoPagoRepository;
-    private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final VentaMapper ventaMapper;
 
     @Autowired
@@ -36,14 +34,12 @@ public class VentaServiceImpl implements VentaService {
                             ProductoRepository productoRepository,
                             SesionTrabajoRepository sesionTrabajoRepository,
                             MetodoPagoRepository metodoPagoRepository,
-                            MovimientoInventarioRepository movimientoInventarioRepository,
                             VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.productoRepository = productoRepository;
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.metodoPagoRepository = metodoPagoRepository;
-        this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.ventaMapper = ventaMapper;
     }
 
@@ -80,10 +76,9 @@ public class VentaServiceImpl implements VentaService {
                         " (Pedido: " + detReq.getCantidad() + ", Disponible: " + producto.getStockActual() + ")");
             }
 
-            // Actualizar Stock
-            producto.setStockActual(producto.getStockActual() - detReq.getCantidad());
-            productoRepository.save(producto);
-
+            // El stock se descuenta automáticamente por el Trigger de la Base de Datos
+            // trg_detalle_venta_ai -> inserta en movimientos_inventario -> trg_mov_inv_ai -> descuenta stock real.
+            
             // Crear Detalle
             DetalleVentaEntity detalle = new DetalleVentaEntity();
             detalle.setVenta(venta);
@@ -95,14 +90,8 @@ public class VentaServiceImpl implements VentaService {
             detalles.add(detalle);
             subtotal += (detalle.getPrecioUnitario() * detalle.getCantidad());
 
-            // Registrar Movimiento Inventario
-            MovimientoInventarioEntity mov = new MovimientoInventarioEntity();
-            mov.setProducto(producto);
-            mov.setTipo(TipoMovimiento.SALIDA);
-            mov.setCantidad(detReq.getCantidad());
-            mov.setMotivo("VENTA " + venta.getNumeroFactura());
-            // Nota: referenciaId se asignará después de guardar la venta
-            movimientoInventarioRepository.save(mov);
+            // Nota: No es necesario crear MovimientoInventarioEntity aquí.
+            // El trigger 'trg_detalle_venta_ai' de la base de datos lo generará automáticamente.
         }
 
         venta.setSubtotal(subtotal);

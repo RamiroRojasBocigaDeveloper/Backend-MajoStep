@@ -12,11 +12,14 @@ public interface GastoMapper {
 
     @Mapping(target = "sesion", ignore = true)
     @Mapping(target = "categoriaGasto", ignore = true)
+    @Mapping(target = "subcategoriaGasto", ignore = true)
     GastoEntity toEntity(GastoRequest request);
 
     @Mapping(source = "sesion.id", target = "sesionId")
     @Mapping(source = "categoriaGasto.id", target = "categoriaGastoId")
     @Mapping(source = "categoriaGasto.nombre", target = "categoriaGastoNombre")
+    @Mapping(source = "subcategoriaGasto.id", target = "subcategoriaGastoId")
+    @Mapping(source = "subcategoriaGasto.nombre", target = "subcategoriaGastoNombre")
     GastoResponse toResponse(GastoEntity entity);
 
     List<GastoResponse> toResponseList(List<GastoEntity> entities);
@@ -24,6 +27,7 @@ public interface GastoMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "sesion", ignore = true)
     @Mapping(target = "categoriaGasto", ignore = true)
+    @Mapping(target = "subcategoriaGasto", ignore = true)
     @Mapping(target = "createdAt", ignore = true)
     @Mapping(target = "updatedAt", ignore = true)
     @BeanMapping(nullValuePropertyMappingStrategy = NullValuePropertyMappingStrategy.IGNORE)
