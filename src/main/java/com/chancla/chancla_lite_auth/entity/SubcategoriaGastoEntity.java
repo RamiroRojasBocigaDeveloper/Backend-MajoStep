@@ -18,7 +18,7 @@ public class SubcategoriaGastoEntity {
     private Long id;
 
     @ManyToOne(optional = false, fetch = FetchType.LAZY)
-    @JoinColumn(name = "categoria_gasto_id", nullable = false)
+    @JoinColumn(name = "categoria_gasto_id", nullable = false, columnDefinition = "INT UNSIGNED")
     private CategoriaGastoEntity categoriaGasto;
 
     @Column(nullable = false, length = 50)

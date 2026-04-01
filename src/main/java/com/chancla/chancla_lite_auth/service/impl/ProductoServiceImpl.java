@@ -136,10 +136,12 @@ public class ProductoServiceImpl implements ProductoService {
     @Transactional(readOnly = true)
     public List<ProductoResponse> obtenerStockBajo() {
         // Obtenemos todos los productos activos y delegamos la lógica de stock bajo
-        // En una implementación real, podríamos usar una query JPA eficiente
+        // Implementación segura contra valores nulos
         List<ProductoEntity> productosBase = productoRepository.findAll();
         List<ProductoEntity> bajoStock = productosBase.stream()
-                .filter(p -> p.getActivo() && p.getStockActual() <= p.getStockMinimo())
+                .filter(p -> Boolean.TRUE.equals(p.getActivo())) // Protección contra nulos
+                .filter(p -> p.getStockActual() != null && p.getStockMinimo() != null)
+                .filter(p -> p.getStockActual() <= p.getStockMinimo())
                 .toList();
         return productoMapper.toResponseList(bajoStock);
     }
