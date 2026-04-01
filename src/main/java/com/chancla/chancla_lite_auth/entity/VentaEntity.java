@@ -41,6 +41,9 @@ public class VentaEntity {
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
+    @Column(name = "fecha_registro_manual")
+    private LocalDateTime fechaRegistroManual;
+
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;

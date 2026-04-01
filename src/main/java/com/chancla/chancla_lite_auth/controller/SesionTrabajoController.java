@@ -57,4 +57,13 @@ public class SesionTrabajoController {
     public ResponseEntity<List<SesionTrabajoResponse>> obtenerTodas() {
         return ResponseEntity.ok(sesionTrabajoService.obtenerTodas());
     }
+
+    @GetMapping("/{sesionId}/resumen")
+    public ResponseEntity<?> obtenerResumenCierre(@PathVariable Long sesionId) {
+        try {
+            return ResponseEntity.ok(sesionTrabajoService.obtenerResumenCierre(sesionId));
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
 }

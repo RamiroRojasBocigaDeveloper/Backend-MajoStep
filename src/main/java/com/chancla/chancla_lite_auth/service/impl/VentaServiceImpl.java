@@ -63,6 +63,12 @@ public class VentaServiceImpl implements VentaService {
         venta.setNumeroFactura(generarNumeroFactura());
         venta.setDescuento(request.getDescuento());
         
+        if (request.getFechaHistorica() != null) {
+            venta.setFechaRegistroManual(request.getFechaHistorica().atTime(12, 0));
+        } else {
+            venta.setFechaRegistroManual(LocalDateTime.now());
+        }
+        
         Double subtotal = 0.0;
         List<DetalleVentaEntity> detalles = new ArrayList<>();
 

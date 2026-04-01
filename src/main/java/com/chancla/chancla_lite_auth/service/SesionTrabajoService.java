@@ -1,5 +1,6 @@
 package com.chancla.chancla_lite_auth.service;
 
+import com.chancla.chancla_lite_auth.dto.response.ResumenSesionResponse;
 import com.chancla.chancla_lite_auth.dto.response.SesionTrabajoResponse;
 import java.util.List;
 
@@ -16,4 +17,6 @@ public interface SesionTrabajoService {
     List<SesionTrabajoResponse> obtenerTodas();
 
     SesionTrabajoResponse obtenerPorId(Long id);
+
+    ResumenSesionResponse obtenerResumenCierre(Long sesionId);
 }

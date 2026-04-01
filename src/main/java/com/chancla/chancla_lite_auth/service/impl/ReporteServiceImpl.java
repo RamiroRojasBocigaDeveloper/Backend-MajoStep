@@ -56,7 +56,7 @@ public class ReporteServiceImpl implements ReporteService {
         LocalDateTime finDateTime = fin.atTime(23, 59, 59);
 
         List<VentaEntity> ventas = ventaRepository.findByRangoFechas(inicioDateTime, finDateTime);
-        List<GastoEntity> gastos = gastoRepository.findByCreatedAtBetween(inicioDateTime, finDateTime);
+        List<GastoEntity> gastos = gastoRepository.findByRangoFechas(inicioDateTime, finDateTime);
         List<SueldoPagadoEntity> sueldos = sueldoPagadoRepository.findByFechaPagoBetween(inicio, fin);
 
         return construirDashboard(ventas, gastos, sueldos);
