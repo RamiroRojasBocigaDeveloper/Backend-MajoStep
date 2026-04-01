@@ -9,6 +9,8 @@ public class DashboardResponse {
     private Double totalSueldos;
     private Double gananciaNeta;
     private Long cantidadVentas;
+    private Double gananciaProductos;
+    private Double costoMercancia;
     private Map<String, Double> ventasPorMetodoPago;
     private Map<String, Long> productosMasVendidos;
 
@@ -36,4 +38,10 @@ public class DashboardResponse {
 
     public Map<String, Long> getProductosMasVendidos() { return productosMasVendidos; }
     public void setProductosMasVendidos(Map<String, Long> productosMasVendidos) { this.productosMasVendidos = productosMasVendidos; }
+
+    public Double getGananciaProductos() { return gananciaProductos; }
+    public void setGananciaProductos(Double gananciaProductos) { this.gananciaProductos = gananciaProductos; }
+
+    public Double getCostoMercancia() { return costoMercancia; }
+    public void setCostoMercancia(Double costoMercancia) { this.costoMercancia = costoMercancia; }
 }

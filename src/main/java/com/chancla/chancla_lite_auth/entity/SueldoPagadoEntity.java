@@ -32,6 +32,7 @@ public class SueldoPagadoEntity {
     @Column(name = "fecha_pago", nullable = false)
     private LocalDate fechaPago;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 }
