@@ -27,7 +27,7 @@ public class SesionTrabajoEntity {
     @Column(name = "hora_fin")
     private LocalDateTime horaFin;
 
-    @Column(insertable = false, updatable = false)
+    @Column(columnDefinition = "DATE DEFAULT CURRENT_DATE")
     private java.time.LocalDate fecha;
 
     @Enumerated(EnumType.STRING)
@@ -37,9 +37,11 @@ public class SesionTrabajoEntity {
     @Column(name = "rol_usuario", length = 50)
     private String rolUsuario;
 
-    @Column(name = "created_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.CreationTimestamp
+    @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;
 
-    @Column(name = "updated_at", insertable = false, updatable = false)
+    @org.hibernate.annotations.UpdateTimestamp
+    @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 }

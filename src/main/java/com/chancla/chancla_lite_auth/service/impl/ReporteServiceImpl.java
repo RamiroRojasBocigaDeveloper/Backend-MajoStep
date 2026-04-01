@@ -15,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -51,22 +52,12 @@ public class ReporteServiceImpl implements ReporteService {
 
     @Override
     public DashboardResponse obtenerResumenPorRangoFechas(LocalDate inicio, LocalDate fin) {
-        // Nota: En una app real, usaríamos queries JPA que filtren por fecha (createdAt)
-        // Aquí simulamos filtrando sobre todos los registros (no óptimo, pero funcional)
-        List<VentaEntity> ventas = ventaRepository.findAll().stream()
-                .filter(v -> (v.getCreatedAt().toLocalDate().isEqual(inicio) || v.getCreatedAt().toLocalDate().isAfter(inicio)) 
-                          && (v.getCreatedAt().toLocalDate().isEqual(fin) || v.getCreatedAt().toLocalDate().isBefore(fin)))
-                .toList();
+        LocalDateTime inicioDateTime = inicio.atStartOfDay();
+        LocalDateTime finDateTime = fin.atTime(23, 59, 59);
 
-        List<GastoEntity> gastos = gastoRepository.findAll().stream()
-                .filter(g -> (g.getCreatedAt().toLocalDate().isEqual(inicio) || g.getCreatedAt().toLocalDate().isAfter(inicio)) 
-                          && (g.getCreatedAt().toLocalDate().isEqual(fin) || g.getCreatedAt().toLocalDate().isBefore(fin)))
-                .toList();
-
-        List<SueldoPagadoEntity> sueldos = sueldoPagadoRepository.findAll().stream()
-                .filter(s -> (s.getFechaPago().isEqual(inicio) || s.getFechaPago().isAfter(inicio)) 
-                          && (s.getFechaPago().isEqual(fin) || s.getFechaPago().isBefore(fin)))
-                .toList();
+        List<VentaEntity> ventas = ventaRepository.findByRangoFechas(inicioDateTime, finDateTime);
+        List<GastoEntity> gastos = gastoRepository.findByCreatedAtBetween(inicioDateTime, finDateTime);
+        List<SueldoPagadoEntity> sueldos = sueldoPagadoRepository.findByFechaPagoBetween(inicio, fin);
 
         return construirDashboard(ventas, gastos, sueldos);
     }
@@ -83,10 +74,23 @@ public class ReporteServiceImpl implements ReporteService {
         double totalGastos = gastos.stream().mapToDouble(GastoEntity::getMonto).sum();
         double totalSueldos = sueldos.stream().mapToDouble(SueldoPagadoEntity::getMonto).sum();
 
+        // Cálculo de Ganancia Real basada en el Margen de los productos (PrecioVenta - PrecioCosto)
+        double gananciaProductos = 0.0;
+        double costoMercancia = 0.0;
+
+        if (!ventas.isEmpty()) {
+            gananciaProductos = detalleVentaRepository.sumMargenByVentas(ventas);
+            costoMercancia = detalleVentaRepository.sumCostoByVentas(ventas);
+        }
+
         dashboard.setTotalVentas(totalVentas);
         dashboard.setTotalGastos(totalGastos);
         dashboard.setTotalSueldos(totalSueldos);
-        dashboard.setGananciaNeta(totalVentas - (totalGastos + totalSueldos));
+        dashboard.setGananciaProductos(gananciaProductos);
+        dashboard.setCostoMercancia(costoMercancia);
+        
+        // Ganancia Neta Real = Ganancia de Margen de Productos - Gastos de Operación - Sueldos
+        dashboard.setGananciaNeta(gananciaProductos - (totalGastos + totalSueldos));
         dashboard.setCantidadVentas((long) ventas.size());
 
         // Agrupación por método de pago
@@ -97,7 +101,7 @@ public class ReporteServiceImpl implements ReporteService {
                 ));
         dashboard.setVentasPorMetodoPago(ventasPorMetodo);
 
-        // Productos más vendidos (Mapeo de detales)
+        // Productos más vendidos
         Map<String, Long> productosFavoritos = new HashMap<>();
         for (VentaEntity v : ventas) {
             List<DetalleVentaEntity> detalles = detalleVentaRepository.findByVentaId(v.getId());
@@ -107,7 +111,6 @@ public class ReporteServiceImpl implements ReporteService {
             }
         }
         
-        // Limitar a los 5 más vendidos (opcional)
         dashboard.setProductosMasVendidos(productosFavoritos);
 
         return dashboard;
