@@ -9,6 +9,8 @@ import com.chancla.chancla_lite_auth.repository.SesionTrabajoRepository;
 import com.chancla.chancla_lite_auth.repository.UsuarioRepository;
 import com.chancla.chancla_lite_auth.service.ProductoService;
 import com.chancla.chancla_lite_auth.service.SesionTrabajoService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -19,6 +21,8 @@ import java.util.List;
 @Service
 @Transactional
 public class SesionTrabajoServiceImpl implements SesionTrabajoService {
+
+    private static final Logger log = LoggerFactory.getLogger(SesionTrabajoServiceImpl.class);
 
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final UsuarioRepository usuarioRepository;
@@ -38,8 +42,10 @@ public class SesionTrabajoServiceImpl implements SesionTrabajoService {
 
     @Override
     public SesionTrabajoResponse abrirSesion(Long usuarioId) {
+        log.info("Abriendo sesión para usuario ID: {}", usuarioId);
         // Verificar si ya tiene una sesión abierta
         if (sesionTrabajoRepository.findByUsuarioIdAndEstado(usuarioId, EstadoSesion.ABIERTA).isPresent()) {
+            log.warn("El usuario ID {} ya tiene una sesión abierta", usuarioId);
             throw new RuntimeException("El usuario ya tiene una sesión abierta.");
         }
 
@@ -62,21 +68,33 @@ public class SesionTrabajoServiceImpl implements SesionTrabajoService {
 
     @Override
     public SesionTrabajoResponse cerrarSesion(Long sesionId) {
+        log.info("Petición para cerrar sesión ID: {}", sesionId);
         SesionTrabajoEntity sesion = sesionTrabajoRepository.findById(sesionId)
                 .orElseThrow(() -> new RuntimeException("Sesión no encontrada."));
 
         if (sesion.getEstado() != EstadoSesion.ABIERTA) {
-            throw new RuntimeException("La sesión ya está cerrada o en un estado inválido.");
+            log.warn("Intento de cerrar sesión ID {} que no está abierta. Estado actual: {}. (Usuario ID: {})", 
+                    sesionId, sesion.getEstado(), sesion.getUsuario().getId());
+            throw new RuntimeException("La sesión ya está cerrada o en un estado inválido (Estado actual: " + sesion.getEstado() + ").");
         }
 
         sesion.setHoraFin(LocalDateTime.now());
         sesion.setEstado(EstadoSesion.CERRADA);
 
         SesionTrabajoEntity actualizada = sesionTrabajoRepository.save(sesion);
+        log.info("Sesion ID {} cerrada correctamente. Calculando alertas de stock...", sesionId);
         
-        // Adjuntar alertas de stock bajo a la respuesta
         SesionTrabajoResponse response = sesionTrabajoMapper.toResponse(actualizada);
-        response.setAlertasStock(productoService.obtenerStockBajo());
+        
+        // Adjuntar alertas de stock bajo (operación no crítica, protegida contra fallos)
+        try {
+            response.setAlertasStock(productoService.obtenerStockBajo());
+            log.info("Cierre de sesion ID {} completado con {} alertas de stock", sesionId, response.getAlertasStock().size());
+        } catch (Exception e) {
+            log.error("Fallo al calcular alertas de stock durante el cierre: {}. Continuando cierre...", e.getMessage());
+            // No bloqueamos el retorno de la sesión cerrada por un fallo en las alertas
+            response.setAlertasStock(java.util.Collections.emptyList());
+        }
         
         return response;
     }

@@ -27,7 +27,7 @@ public class SesionTrabajoEntity {
     @Column(name = "hora_fin")
     private LocalDateTime horaFin;
 
-    @Column(columnDefinition = "DATE DEFAULT CURRENT_DATE")
+    @Column(name = "fecha", insertable = false, updatable = false)
     private java.time.LocalDate fecha;
 
     @Enumerated(EnumType.STRING)
