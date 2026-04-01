@@ -5,6 +5,8 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
 import jakarta.validation.constraints.Size;
 
+import java.time.LocalDate;
+
 public class GastoRequest {
 
     @NotNull(message = "La sesión de trabajo es obligatoria")
@@ -25,6 +27,11 @@ public class GastoRequest {
 
     public GastoRequest() {
     }
+
+    private LocalDate fechaHistorica;
+
+    public LocalDate getFechaHistorica() { return fechaHistorica; }
+    public void setFechaHistorica(LocalDate fechaHistorica) { this.fechaHistorica = fechaHistorica; }
 
     public Long getSesionId() { return sesionId; }
     public void setSesionId(Long sesionId) { this.sesionId = sesionId; }

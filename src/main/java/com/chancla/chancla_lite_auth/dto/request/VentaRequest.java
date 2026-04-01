@@ -2,6 +2,7 @@ package com.chancla.chancla_lite_auth.dto.request;
 
 import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Positive;
+import java.time.LocalDate;
 import java.util.List;
 
 public class VentaRequest {
@@ -20,7 +21,12 @@ public class VentaRequest {
     public VentaRequest() {
     }
 
+    private LocalDate fechaHistorica;
+
     // Getters y Setters
+    public LocalDate getFechaHistorica() { return fechaHistorica; }
+    public void setFechaHistorica(LocalDate fechaHistorica) { this.fechaHistorica = fechaHistorica; }
+
     public Long getSesionId() { return sesionId; }
     public void setSesionId(Long sesionId) { this.sesionId = sesionId; }
 

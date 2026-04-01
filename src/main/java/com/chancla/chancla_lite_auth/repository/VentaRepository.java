@@ -16,6 +16,6 @@ public interface VentaRepository extends JpaRepository<VentaEntity, Long> {
     Optional<VentaEntity> findByNumeroFactura(String numeroFactura);
     List<VentaEntity> findBySesionUsuarioId(Long usuarioId);
 
-    @Query("SELECT v FROM VentaEntity v WHERE v.createdAt BETWEEN :inicio AND :fin")
+    @Query("SELECT v FROM VentaEntity v WHERE COALESCE(v.fechaRegistroManual, v.createdAt) BETWEEN :inicio AND :fin")
     List<VentaEntity> findByRangoFechas(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }

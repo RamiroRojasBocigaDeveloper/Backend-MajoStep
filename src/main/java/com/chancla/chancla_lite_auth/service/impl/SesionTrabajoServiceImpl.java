@@ -9,6 +9,11 @@ import com.chancla.chancla_lite_auth.repository.SesionTrabajoRepository;
 import com.chancla.chancla_lite_auth.repository.UsuarioRepository;
 import com.chancla.chancla_lite_auth.service.ProductoService;
 import com.chancla.chancla_lite_auth.service.SesionTrabajoService;
+import com.chancla.chancla_lite_auth.dto.response.ResumenSesionResponse;
+import com.chancla.chancla_lite_auth.entity.GastoEntity;
+import com.chancla.chancla_lite_auth.entity.VentaEntity;
+import com.chancla.chancla_lite_auth.repository.GastoRepository;
+import com.chancla.chancla_lite_auth.repository.VentaRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -28,16 +33,22 @@ public class SesionTrabajoServiceImpl implements SesionTrabajoService {
     private final UsuarioRepository usuarioRepository;
     private final ProductoService productoService;
     private final SesionTrabajoMapper sesionTrabajoMapper;
+    private final VentaRepository ventaRepository;
+    private final GastoRepository gastoRepository;
 
     @Autowired
     public SesionTrabajoServiceImpl(SesionTrabajoRepository sesionTrabajoRepository,
                                     UsuarioRepository usuarioRepository,
                                     ProductoService productoService,
-                                    SesionTrabajoMapper sesionTrabajoMapper) {
+                                    SesionTrabajoMapper sesionTrabajoMapper,
+                                    VentaRepository ventaRepository,
+                                    GastoRepository gastoRepository) {
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.usuarioRepository = usuarioRepository;
         this.productoService = productoService;
         this.sesionTrabajoMapper = sesionTrabajoMapper;
+        this.ventaRepository = ventaRepository;
+        this.gastoRepository = gastoRepository;
     }
 
     @Override
@@ -125,5 +136,29 @@ public class SesionTrabajoServiceImpl implements SesionTrabajoService {
         SesionTrabajoEntity sesion = sesionTrabajoRepository.findById(id)
                 .orElseThrow(() -> new RuntimeException("Sesión no encontrada."));
         return sesionTrabajoMapper.toResponse(sesion);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ResumenSesionResponse obtenerResumenCierre(Long sesionId) {
+        log.info("Calculando resumen para la sesión ID: {}", sesionId);
+
+        // Validar que exista la sesión
+        SesionTrabajoEntity sesion = sesionTrabajoRepository.findById(sesionId)
+                .orElseThrow(() -> new RuntimeException("Sesión no encontrada."));
+
+        List<VentaEntity> ventas = ventaRepository.findBySesionId(sesionId);
+        List<GastoEntity> gastos = gastoRepository.findBySesionId(sesionId);
+
+        Double totalVentas = ventas.stream().mapToDouble(VentaEntity::getTotal).sum();
+        Double totalGastos = gastos.stream().mapToDouble(GastoEntity::getMonto).sum();
+        Double saldoNeto = totalVentas - totalGastos;
+
+        return ResumenSesionResponse.builder()
+                .sesionId(sesionId)
+                .totalVentas(totalVentas)
+                .totalGastos(totalGastos)
+                .saldoNeto(saldoNeto)
+                .build();
     }
 }

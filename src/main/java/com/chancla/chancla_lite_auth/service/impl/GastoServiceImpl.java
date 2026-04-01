@@ -91,6 +91,12 @@ public class GastoServiceImpl implements GastoService {
             nuevoGasto.setSubcategoriaGasto(subcategoria);
         }
 
+        if (request.getFechaHistorica() != null) {
+            nuevoGasto.setFechaRegistroManual(request.getFechaHistorica().atTime(12, 0));
+        } else {
+            nuevoGasto.setFechaRegistroManual(java.time.LocalDateTime.now());
+        }
+
         return gastoMapper.toResponse(gastoRepository.save(nuevoGasto));
     }
 
