@@ -89,8 +89,8 @@ public class ReporteServiceImpl implements ReporteService {
         dashboard.setGananciaProductos(gananciaProductos);
         dashboard.setCostoMercancia(costoMercancia);
         
-        // Ganancia Neta Real = Ganancia de Margen de Productos - Gastos de Operación - Sueldos
-        dashboard.setGananciaNeta(gananciaProductos - (totalGastos + totalSueldos));
+        // Flujo de Caja (Efectivo en Caja) = Ventas Totales - (Gastos Operativos + Sueldos)
+        dashboard.setGananciaNeta(totalVentas - (totalGastos + totalSueldos));
         dashboard.setCantidadVentas((long) ventas.size());
 
         // Agrupación por método de pago
@@ -101,17 +101,39 @@ public class ReporteServiceImpl implements ReporteService {
                 ));
         dashboard.setVentasPorMetodoPago(ventasPorMetodo);
 
-        // Productos más vendidos
+        // Agrupación por Categoría y Productos más vendidos
         Map<String, Long> productosFavoritos = new HashMap<>();
+        Map<String, Double> ventasPorCat = new HashMap<>();
+        Map<String, Double> gananciasPorCat = new HashMap<>();
+
         for (VentaEntity v : ventas) {
             List<DetalleVentaEntity> detalles = detalleVentaRepository.findByVentaId(v.getId());
             for (DetalleVentaEntity d : detalles) {
-                String nombre = d.getProducto().getNombre();
-                productosFavoritos.put(nombre, productosFavoritos.getOrDefault(nombre, 0L) + d.getCantidad());
+                // Productos Favoritos
+                String nombreProd = d.getProducto().getNombre();
+                productosFavoritos.put(nombreProd, productosFavoritos.getOrDefault(nombreProd, 0L) + d.getCantidad());
+
+                // Ventas por Categoría
+                String nombreCat = (d.getProducto().getCategoria() != null) ? d.getProducto().getCategoria().getNombre() : "Sin Categoría";
+                double subtotal = d.getSubtotalItem() != null ? d.getSubtotalItem() : (d.getPrecioUnitario() * d.getCantidad());
+                double margenDetalle = d.getMargenItem() != null ? d.getMargenItem() : ((d.getPrecioUnitario() - d.getCostoUnitario()) * d.getCantidad());
+
+                ventasPorCat.put(nombreCat, ventasPorCat.getOrDefault(nombreCat, 0.0) + subtotal);
+                gananciasPorCat.put(nombreCat, gananciasPorCat.getOrDefault(nombreCat, 0.0) + margenDetalle);
             }
         }
         
         dashboard.setProductosMasVendidos(productosFavoritos);
+        dashboard.setVentasPorCategoria(ventasPorCat);
+        dashboard.setGananciasPorCategoria(gananciasPorCat);
+
+        // Gastos por Categoría
+        Map<String, Double> gastosPorCat = gastos.stream()
+                .collect(Collectors.groupingBy(
+                        g -> (g.getCategoriaGasto() != null) ? g.getCategoriaGasto().getNombre() : "Sin Categoría",
+                        Collectors.summingDouble(GastoEntity::getMonto)
+                ));
+        dashboard.setGastosPorCategoria(gastosPorCat);
 
         return dashboard;
     }

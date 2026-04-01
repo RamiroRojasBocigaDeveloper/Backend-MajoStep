@@ -12,6 +12,9 @@ public class DashboardResponse {
     private Double gananciaProductos;
     private Double costoMercancia;
     private Map<String, Double> ventasPorMetodoPago;
+    private Map<String, Double> ventasPorCategoria;
+    private Map<String, Double> gananciasPorCategoria;
+    private Map<String, Double> gastosPorCategoria;
     private Map<String, Long> productosMasVendidos;
 
     public DashboardResponse() {
@@ -35,6 +38,15 @@ public class DashboardResponse {
 
     public Map<String, Double> getVentasPorMetodoPago() { return ventasPorMetodoPago; }
     public void setVentasPorMetodoPago(Map<String, Double> ventasPorMetodoPago) { this.ventasPorMetodoPago = ventasPorMetodoPago; }
+
+    public Map<String, Double> getVentasPorCategoria() { return ventasPorCategoria; }
+    public void setVentasPorCategoria(Map<String, Double> ventasPorCategoria) { this.ventasPorCategoria = ventasPorCategoria; }
+
+    public Map<String, Double> getGananciasPorCategoria() { return gananciasPorCategoria; }
+    public void setGananciasPorCategoria(Map<String, Double> gananciasPorCategoria) { this.gananciasPorCategoria = gananciasPorCategoria; }
+
+    public Map<String, Double> getGastosPorCategoria() { return gastosPorCategoria; }
+    public void setGastosPorCategoria(Map<String, Double> gastosPorCategoria) { this.gastosPorCategoria = gastosPorCategoria; }
 
     public Map<String, Long> getProductosMasVendidos() { return productosMasVendidos; }
     public void setProductosMasVendidos(Map<String, Long> productosMasVendidos) { this.productosMasVendidos = productosMasVendidos; }
