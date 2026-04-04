@@ -6,19 +6,15 @@ WORKDIR /app
 # Copia pom.xml primero para aprovechar el cache de capas de Docker
 COPY pom.xml .
 
-# Descarga todas las dependencias al .m2 local
+# Descarga todas las dependencias y plugins al .m2 local
 # Esta capa se cachea mientras pom.xml no cambie
 RUN mvn dependency:resolve dependency:resolve-plugins -B
 
 # Copia el código fuente
 COPY src ./src
 
-# Compila usando el .m2 ya populado — sin 'clean' para no invalidar el cache
-# Sin -o porque go-offline no garantiza todas las transitivas
-RUN mvn dependency:resolve dependency:resolve-plugins \
-    dependency:resolve -Dclassifier=sources \
-    org.apache.maven.plugins:maven-compiler-plugin:3.11.0:resolve-plugins \
-    -B
+# Compila reutilizando el .m2 ya populado
+RUN mvn package -DskipTests -B
 
 # Runtime stage - alpine es más liviano (~200MB menos)
 FROM eclipse-temurin:17-jre-alpine
