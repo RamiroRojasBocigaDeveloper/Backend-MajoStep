@@ -3,18 +3,19 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
-# Copia pom.xml primero para aprovechar el cache de Docker
+# Copia pom.xml primero para aprovechar el cache de capas de Docker
 COPY pom.xml .
 
-# Descarga dependencias al repositorio local (.m2) - se cachea si pom.xml no cambia
-RUN mvn dependency:go-offline -B
+# Descarga todas las dependencias al .m2 local
+# Esta capa se cachea mientras pom.xml no cambie
+RUN mvn dependency:resolve dependency:resolve-plugins -B
 
 # Copia el código fuente
 COPY src ./src
 
-# Compila reutilizando el .m2 ya descargado, sin limpiar el cache
-# Nota: se usa 'package' en vez de 'clean package' para no borrar el .m2 cacheado
-RUN mvn package -DskipTests -B -o
+# Compila usando el .m2 ya populado — sin 'clean' para no invalidar el cache
+# Sin -o porque go-offline no garantiza todas las transitivas
+RUN mvn package -DskipTests -B
 
 # Runtime stage - alpine es más liviano (~200MB menos)
 FROM eclipse-temurin:17-jre-alpine
