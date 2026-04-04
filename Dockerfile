@@ -15,7 +15,10 @@ COPY src ./src
 
 # Compila usando el .m2 ya populado — sin 'clean' para no invalidar el cache
 # Sin -o porque go-offline no garantiza todas las transitivas
-RUN mvn package -DskipTests -B
+RUN mvn dependency:resolve dependency:resolve-plugins \
+    dependency:resolve -Dclassifier=sources \
+    org.apache.maven.plugins:maven-compiler-plugin:3.11.0:resolve-plugins \
+    -B
 
 # Runtime stage - alpine es más liviano (~200MB menos)
 FROM eclipse-temurin:17-jre-alpine
