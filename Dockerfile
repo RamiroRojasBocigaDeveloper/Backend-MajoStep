@@ -6,14 +6,15 @@ WORKDIR /app
 # Copia pom.xml primero para aprovechar el cache de Docker
 COPY pom.xml .
 
-# Descarga dependencias (se cachea si pom.xml no cambia)
-RUN mvn dependency:go-offline
+# Descarga dependencias al repositorio local (.m2) - se cachea si pom.xml no cambia
+RUN mvn dependency:go-offline -B
 
 # Copia el código fuente
 COPY src ./src
 
-# Compila el proyecto sin tests
-RUN mvn clean package -DskipTests
+# Compila reutilizando el .m2 ya descargado, sin limpiar el cache
+# Nota: se usa 'package' en vez de 'clean package' para no borrar el .m2 cacheado
+RUN mvn package -DskipTests -B -o
 
 # Runtime stage - alpine es más liviano (~200MB menos)
 FROM eclipse-temurin:17-jre-alpine
