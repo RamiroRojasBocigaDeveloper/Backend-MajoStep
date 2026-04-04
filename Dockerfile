@@ -3,19 +3,19 @@ FROM maven:3.9-eclipse-temurin-17 AS builder
 
 WORKDIR /app
 
-# Copia pom.xml
+# Copia pom.xml primero para aprovechar el cache de Docker
 COPY pom.xml .
 
-# Descarga dependencias
+# Descarga dependencias (se cachea si pom.xml no cambia)
 RUN mvn dependency:go-offline
 
 # Copia el código fuente
 COPY src ./src
 
-# Compila el proyecto
+# Compila el proyecto sin tests
 RUN mvn clean package -DskipTests
 
-# Runtime stage
+# Runtime stage - alpine es más liviano (~200MB menos)
 FROM eclipse-temurin:17-jre-alpine
 
 WORKDIR /app
@@ -23,8 +23,16 @@ WORKDIR /app
 # Copia el JAR compilado del stage anterior
 COPY --from=builder /app/target/*.jar app.jar
 
-# Expone el puerto 8080
-EXPOSE 8080
+# Expone el puerto que usa Render por defecto
+EXPOSE 10000
 
-# Comando para ejecutar la aplicación
-ENTRYPOINT ["java", "-Dspring.profiles.active=prod", "-jar", "app.jar"]
+# Flags de JVM optimizados para contenedores con poca RAM (Render free: 512MB)
+# UseContainerSupport: detecta correctamente los límites de memoria del contenedor
+# MaxRAMPercentage: usa hasta el 75% de la RAM disponible para el heap
+# TieredStopAtLevel=1: reduce el tiempo de compilación JIT en el arranque
+ENTRYPOINT ["java", \
+    "-XX:+UseContainerSupport", \
+    "-XX:MaxRAMPercentage=75.0", \
+    "-XX:TieredStopAtLevel=1", \
+    "-Dspring.profiles.active=prod", \
+    "-jar", "app.jar"]
