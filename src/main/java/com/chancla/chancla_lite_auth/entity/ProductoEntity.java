@@ -43,6 +43,10 @@ public class ProductoEntity {
     @Column(nullable = false)
     private Boolean activo = true;
 
+    @Column(name = "imagen_url")
+    private String imagenUrl;
+
+
     @org.hibernate.annotations.CreationTimestamp
     @Column(name = "created_at", updatable = false)
     private LocalDateTime createdAt;

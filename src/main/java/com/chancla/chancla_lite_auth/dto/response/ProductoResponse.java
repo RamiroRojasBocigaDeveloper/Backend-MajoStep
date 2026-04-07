@@ -16,6 +16,7 @@ public class ProductoResponse {
     private Boolean activo;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
+    private String imagenUrl;
 
     public ProductoResponse() {
     }
@@ -56,4 +57,7 @@ public class ProductoResponse {
 
     public LocalDateTime getUpdatedAt() { return updatedAt; }
     public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+
+    public String getImagenUrl() { return imagenUrl; }
+    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 }

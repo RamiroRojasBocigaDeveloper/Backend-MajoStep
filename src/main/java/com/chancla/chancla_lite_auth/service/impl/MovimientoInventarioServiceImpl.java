@@ -47,6 +47,22 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             }
         }
 
+        // Actualizar precio de producto si se provee
+        if (tipo == TipoMovimiento.ENTRADA) {
+            boolean actualizoPrecio = false;
+            if (request.getNuevoPrecioCompra() != null) {
+                producto.setPrecioCompra(request.getNuevoPrecioCompra());
+                actualizoPrecio = true;
+            }
+            if (request.getNuevoPrecioVenta() != null) {
+                producto.setPrecioVenta(request.getNuevoPrecioVenta());
+                actualizoPrecio = true;
+            }
+            if (actualizoPrecio) {
+                productoRepository.save(producto);
+            }
+        }
+
         // Ya NO guardamos el producto manualmente. 
         // El guardado del movimiento invocará el trigger trg_mov_inv_ai y actualizará el stock en la BD automáticamente.
 

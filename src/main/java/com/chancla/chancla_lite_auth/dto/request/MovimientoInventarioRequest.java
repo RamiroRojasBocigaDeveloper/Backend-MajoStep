@@ -23,6 +23,9 @@ public class MovimientoInventarioRequest {
 
     private Long referenciaId;
 
+    private Double nuevoPrecioCompra;
+    private Double nuevoPrecioVenta;
+
     public MovimientoInventarioRequest() {
     }
 
@@ -40,4 +43,10 @@ public class MovimientoInventarioRequest {
 
     public Long getReferenciaId() { return referenciaId; }
     public void setReferenciaId(Long referenciaId) { this.referenciaId = referenciaId; }
+
+    public Double getNuevoPrecioCompra() { return nuevoPrecioCompra; }
+    public void setNuevoPrecioCompra(Double nuevoPrecioCompra) { this.nuevoPrecioCompra = nuevoPrecioCompra; }
+
+    public Double getNuevoPrecioVenta() { return nuevoPrecioVenta; }
+    public void setNuevoPrecioVenta(Double nuevoPrecioVenta) { this.nuevoPrecioVenta = nuevoPrecioVenta; }
 }

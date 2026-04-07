@@ -90,7 +90,13 @@ public class VentaServiceImpl implements VentaService {
             detalle.setVenta(venta);
             detalle.setProducto(producto);
             detalle.setCantidad(detReq.getCantidad());
-            detalle.setPrecioUnitario(producto.getPrecioVenta());
+            
+            if (detReq.getPrecioUnitario() != null) {
+                detalle.setPrecioUnitario(detReq.getPrecioUnitario());
+            } else {
+                detalle.setPrecioUnitario(producto.getPrecioVenta());
+            }
+            
             detalle.setCostoUnitario(producto.getPrecioCompra());
             
             detalles.add(detalle);

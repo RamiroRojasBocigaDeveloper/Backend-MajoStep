@@ -33,6 +33,8 @@ public class ProductoRequest {
 
     private Boolean activo = true;
 
+    private String imagenUrl;
+
     public ProductoRequest() {
     }
 
@@ -60,4 +62,7 @@ public class ProductoRequest {
 
     public Boolean getActivo() { return activo; }
     public void setActivo(Boolean activo) { this.activo = activo; }
+
+    public String getImagenUrl() { return imagenUrl; }
+    public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
 }

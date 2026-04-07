@@ -47,6 +47,8 @@ public class VentaRequest {
         @Positive(message = "La cantidad debe ser mayor a cero")
         private Integer cantidad;
 
+        private Double precioUnitario;
+
         public DetalleVentaRequest() {
         }
 
@@ -55,5 +57,8 @@ public class VentaRequest {
 
         public Integer getCantidad() { return cantidad; }
         public void setCantidad(Integer cantidad) { this.cantidad = cantidad; }
+
+        public Double getPrecioUnitario() { return precioUnitario; }
+        public void setPrecioUnitario(Double precioUnitario) { this.precioUnitario = precioUnitario; }
     }
 }
