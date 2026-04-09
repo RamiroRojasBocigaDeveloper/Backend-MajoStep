@@ -50,4 +50,14 @@ public class UsuarioController {
         usuarioService.eliminar(id);
         return ResponseEntity.noContent().build();
     }
+
+    @PatchMapping("/{id}/reset-password")
+    public ResponseEntity<Void> resetearPassword(@PathVariable Long id, @RequestBody java.util.Map<String, String> body) {
+        String nuevaPassword = body.get("password");
+        if (nuevaPassword == null || nuevaPassword.isBlank()) {
+            return ResponseEntity.badRequest().build();
+        }
+        usuarioService.resetearPassword(id, nuevaPassword);
+        return ResponseEntity.ok().build();
+    }
 }

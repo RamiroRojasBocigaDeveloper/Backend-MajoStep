@@ -99,4 +99,13 @@ public class UsuarioServiceImpl implements UsuarioService {
         usuario.setActivo(activo);
         return usuarioMapper.toResponse(usuarioRepository.save(usuario));
     }
+
+    @Override
+    @Transactional
+    public void resetearPassword(Long id, String nuevaPassword) {
+        UsuarioEntity usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
+        usuario.setPassword(passwordEncoder.encode(nuevaPassword));
+        usuarioRepository.save(usuario);
+    }
 }

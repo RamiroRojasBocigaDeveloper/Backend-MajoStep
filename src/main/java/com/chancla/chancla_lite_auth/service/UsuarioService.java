@@ -12,4 +12,5 @@ public interface UsuarioService {
     UsuarioResponse actualizar(Long id, UsuarioRequest request);
     void eliminar(Long id);
     UsuarioResponse cambiarEstado(Long id, Boolean activo);
+    void resetearPassword(Long id, String nuevaPassword);
 }
