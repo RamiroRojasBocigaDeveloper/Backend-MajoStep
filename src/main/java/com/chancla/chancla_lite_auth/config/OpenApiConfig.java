@@ -16,9 +16,9 @@ public class OpenApiConfig {
         final String securitySchemeName = "bearerAuth";
         return new OpenAPI()
                 .info(new Info()
-                        .title("Chancla Lite Auth API")
+                        .title("MajoStep Auth API")
                         .version("1.0")
-                        .description("Sistema de autenticación y gestión para la tienda Chancla Lite"))
+                        .description("Sistema de autenticación y gestión para la tienda MajoStep"))
                 .addSecurityItem(new SecurityRequirement().addList(securitySchemeName))
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName,
