@@ -46,6 +46,12 @@ public class ProductoEntity {
     @Column(name = "imagen_url")
     private String imagenUrl;
 
+    @Column(length = 50)
+    private String talla;
+
+    @Column(length = 500)
+    private String descripcion;
+
 
     @org.hibernate.annotations.CreationTimestamp
     @Column(name = "created_at", updatable = false)

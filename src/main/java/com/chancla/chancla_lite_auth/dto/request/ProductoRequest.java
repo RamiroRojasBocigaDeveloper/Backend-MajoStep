@@ -34,6 +34,12 @@ public class ProductoRequest {
     private Boolean activo = true;
 
     private String imagenUrl;
+    
+    @Size(max = 50, message = "La talla no puede exceder 50 caracteres")
+    private String talla;
+
+    @Size(max = 500, message = "La descripción no puede exceder 500 caracteres")
+    private String descripcion;
 
     public ProductoRequest() {
     }
@@ -65,4 +71,10 @@ public class ProductoRequest {
 
     public String getImagenUrl() { return imagenUrl; }
     public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
+
+    public String getTalla() { return talla; }
+    public void setTalla(String talla) { this.talla = talla; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }

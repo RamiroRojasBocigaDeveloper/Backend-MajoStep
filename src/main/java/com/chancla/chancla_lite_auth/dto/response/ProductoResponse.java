@@ -17,6 +17,8 @@ public class ProductoResponse {
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
     private String imagenUrl;
+    private String talla;
+    private String descripcion;
 
     public ProductoResponse() {
     }
@@ -60,4 +62,10 @@ public class ProductoResponse {
 
     public String getImagenUrl() { return imagenUrl; }
     public void setImagenUrl(String imagenUrl) { this.imagenUrl = imagenUrl; }
+
+    public String getTalla() { return talla; }
+    public void setTalla(String talla) { this.talla = talla; }
+
+    public String getDescripcion() { return descripcion; }
+    public void setDescripcion(String descripcion) { this.descripcion = descripcion; }
 }
