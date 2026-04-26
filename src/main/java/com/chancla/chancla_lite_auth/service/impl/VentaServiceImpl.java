@@ -64,6 +64,14 @@ public class VentaServiceImpl implements VentaService {
         venta.setDescuento(request.getDescuento());
         
         if (request.getFechaHistorica() != null) {
+            // Validar que el usuario sea ADMIN para usar fecha histórica
+            boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                    .getAuthorities().stream()
+                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+            
+            if (!isAdmin) {
+                throw new RuntimeException("No tienes permisos para registrar ventas con fecha histórica. Solo administradores pueden realizar esta acción.");
+            }
             venta.setFechaRegistroManual(request.getFechaHistorica().atTime(12, 0));
         } else {
             venta.setFechaRegistroManual(LocalDateTime.now());

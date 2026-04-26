@@ -66,7 +66,7 @@ public class SueldoPagadoServiceImpl implements SueldoPagadoService {
 
         // Verifica si el usuario actual es ADMINISTRADOR
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
 
         // Regla: Solo ADMIN puede registrar en sesiones cerradas (Auditoría tardía)
         if (!isAdmin && sesion.getEstado() != EstadoSesion.ABIERTA) {

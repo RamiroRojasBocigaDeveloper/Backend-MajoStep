@@ -64,22 +64,40 @@ public class UsuarioServiceImpl implements UsuarioService {
     @Override
     @Transactional
     public UsuarioResponse actualizar(Long id, UsuarioRequest request) {
+        System.out.println(">>> [DEBUG] Actualizando usuario ID: " + id);
+        System.out.println(">>> [DEBUG] Rol ID recibido: " + request.getRolId());
+
         UsuarioEntity usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuario no encontrado con ID: " + id));
 
-        usuarioMapper.updateEntityFromRequest(request, usuario);
+        System.out.println(">>> [DEBUG] Rol actual en DB: " + (usuario.getRol() != null ? usuario.getRol().getId() : "null"));
+
+        usuario.setNombre(request.getNombre());
+        usuario.setEmail(request.getEmail());
+        usuario.setSueldoDiario(request.getSueldoDiario());
+        usuario.setActivo(request.getActivo());
 
         if (request.getRolId() != null) {
             RolEntity rol = rolRepository.findById(request.getRolId().shortValue())
-                    .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado"));
+                    .orElseThrow(() -> new ResourceNotFoundException("Rol no encontrado con ID: " + request.getRolId()));
+            
+            System.out.println(">>> [DEBUG] Asignando nuevo rol: " + rol.getNombre() + " (ID: " + rol.getId() + ")");
             usuario.setRol(rol);
+            
+            // Forzar actualización manual vía query para evitar problemas de Dirty Checking
+            usuarioRepository.actualizarRol(id, request.getRolId().shortValue());
         }
 
         if (request.getPassword() != null && !request.getPassword().isBlank()) {
             usuario.setPassword(passwordEncoder.encode(request.getPassword()));
         }
 
-        return usuarioMapper.toResponse(usuarioRepository.save(usuario));
+        // Usamos saveAndFlush para obligar a Hibernate a sincronizar con la DB de inmediato
+        UsuarioEntity guardado = usuarioRepository.saveAndFlush(usuario);
+        
+        System.out.println(">>> [DEBUG] Usuario guardado. Nuevo Rol ID en entidad: " + (guardado.getRol() != null ? guardado.getRol().getId() : "null"));
+        
+        return usuarioMapper.toResponse(guardado);
     }
 
     @Override

@@ -68,7 +68,7 @@ public class GastoServiceImpl implements GastoService {
 
         // Verifica rol ADMINISTRADOR para omitir bloqueo de sesión cerrada
         boolean isAdmin = SecurityContextHolder.getContext().getAuthentication().getAuthorities()
-                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
+                .stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
 
         // Regla: Bloquea cajeros si la sesión no está abierta
         if (!isAdmin && sesion.getEstado() != EstadoSesion.ABIERTA) {
