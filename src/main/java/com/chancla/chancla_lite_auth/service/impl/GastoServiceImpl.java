@@ -12,6 +12,7 @@ import com.chancla.chancla_lite_auth.repository.GastoRepository;
 import com.chancla.chancla_lite_auth.repository.SesionTrabajoRepository;
 import com.chancla.chancla_lite_auth.repository.SubcategoriaGastoRepository;
 import com.chancla.chancla_lite_auth.repository.UsuarioRepository;
+import com.chancla.chancla_lite_auth.service.AuditoriaService;
 import com.chancla.chancla_lite_auth.entity.SubcategoriaGastoEntity;
 import com.chancla.chancla_lite_auth.service.GastoService;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -30,6 +31,7 @@ public class GastoServiceImpl implements GastoService {
     private final CategoriaGastoRepository categoriaGastoRepository;
     private final SubcategoriaGastoRepository subcategoriaGastoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
     private final GastoMapper gastoMapper;
 
     @Autowired
@@ -38,12 +40,14 @@ public class GastoServiceImpl implements GastoService {
                             CategoriaGastoRepository categoriaGastoRepository,
                             SubcategoriaGastoRepository subcategoriaGastoRepository,
                             UsuarioRepository usuarioRepository,
+                            AuditoriaService auditoriaService,
                             GastoMapper gastoMapper) {
         this.gastoRepository = gastoRepository;
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.categoriaGastoRepository = categoriaGastoRepository;
         this.subcategoriaGastoRepository = subcategoriaGastoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
         this.gastoMapper = gastoMapper;
     }
 

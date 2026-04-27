@@ -12,10 +12,19 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface VentaRepository extends JpaRepository<VentaEntity, Long> {
+    
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"detalles", "sesion", "sesion.usuario", "metodoPago"})
+    java.util.List<VentaEntity> findAll();
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"detalles", "sesion", "sesion.usuario", "metodoPago"})
     List<VentaEntity> findBySesionId(Long sesionId);
+
     Optional<VentaEntity> findByNumeroFactura(String numeroFactura);
+
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"detalles", "sesion", "sesion.usuario", "metodoPago"})
     List<VentaEntity> findBySesionUsuarioId(Long usuarioId);
 
+    @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"detalles", "sesion", "sesion.usuario", "metodoPago"})
     @Query("SELECT v FROM VentaEntity v WHERE COALESCE(v.fechaRegistroManual, v.createdAt) BETWEEN :inicio AND :fin")
     List<VentaEntity> findByRangoFechas(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
 }

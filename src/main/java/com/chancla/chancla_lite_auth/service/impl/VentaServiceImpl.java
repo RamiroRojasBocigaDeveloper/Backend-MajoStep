@@ -6,6 +6,7 @@ import com.chancla.chancla_lite_auth.entity.*;
 import com.chancla.chancla_lite_auth.enums.EstadoSesion;
 import com.chancla.chancla_lite_auth.mapper.VentaMapper;
 import com.chancla.chancla_lite_auth.repository.*;
+import com.chancla.chancla_lite_auth.service.AuditoriaService;
 import com.chancla.chancla_lite_auth.service.VentaService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ public class VentaServiceImpl implements VentaService {
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final MetodoPagoRepository metodoPagoRepository;
     private final UsuarioRepository usuarioRepository;
+    private final AuditoriaService auditoriaService;
     private final VentaMapper ventaMapper;
 
     @Autowired
@@ -36,6 +38,7 @@ public class VentaServiceImpl implements VentaService {
                             SesionTrabajoRepository sesionTrabajoRepository,
                             MetodoPagoRepository metodoPagoRepository,
                             UsuarioRepository usuarioRepository,
+                            AuditoriaService auditoriaService,
                             VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
@@ -43,6 +46,7 @@ public class VentaServiceImpl implements VentaService {
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.metodoPagoRepository = metodoPagoRepository;
         this.usuarioRepository = usuarioRepository;
+        this.auditoriaService = auditoriaService;
         this.ventaMapper = ventaMapper;
     }
     @Override
@@ -158,6 +162,12 @@ public class VentaServiceImpl implements VentaService {
 
         VentaEntity ventaGuardada = ventaRepository.save(venta);
         
+        // Registro de Auditoría
+        String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        String detallesLog = String.format("Venta %s creada por un monto de %f. Vendedor asignado: %s", 
+            ventaGuardada.getNumeroFactura(), ventaGuardada.getTotal(), sesion.getUsuario().getNombre());
+        auditoriaService.registrar(usuarioActual, "CREAR", "VENTA", ventaGuardada.getId(), detallesLog);
+        
         // Asignar referenciaId a los movimientos y guardar detalles
         for (DetalleVentaEntity d : detalles) {
             d.setVenta(ventaGuardada);
@@ -198,17 +208,18 @@ public class VentaServiceImpl implements VentaService {
     @Override
     @Transactional(readOnly = true)
     public List<VentaResponse> obtenerTodas() {
-        // Por eficiencia, en un entorno real usaríamos DTOs directos o proyecciones
         return ventaRepository.findAll().stream()
-                .map(v -> obtenerPorId(v.getId()))
+                .map(v -> ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(v.getDetalles())))
                 .toList();
     }
+
+
 
     @Override
     @Transactional(readOnly = true)
     public List<VentaResponse> obtenerPorSesion(Long sesionId) {
         return ventaRepository.findBySesionId(sesionId).stream()
-                .map(v -> obtenerPorId(v.getId()))
+                .map(v -> ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(v.getDetalles())))
                 .toList();
     }
 
@@ -216,7 +227,7 @@ public class VentaServiceImpl implements VentaService {
     @Transactional(readOnly = true)
     public List<VentaResponse> obtenerPorUsuario(Long usuarioId) {
         return ventaRepository.findBySesionUsuarioId(usuarioId).stream()
-                .map(v -> obtenerPorId(v.getId()))
+                .map(v -> ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(v.getDetalles())))
                 .toList();
     }
 }

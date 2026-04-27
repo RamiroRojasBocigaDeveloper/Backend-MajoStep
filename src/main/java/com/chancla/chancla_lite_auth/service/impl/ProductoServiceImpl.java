@@ -9,6 +9,7 @@ import com.chancla.chancla_lite_auth.repository.CategoriaRepository;
 import com.chancla.chancla_lite_auth.repository.DetalleVentaRepository;
 import com.chancla.chancla_lite_auth.repository.MovimientoInventarioRepository;
 import com.chancla.chancla_lite_auth.repository.ProductoRepository;
+import com.chancla.chancla_lite_auth.service.AuditoriaService;
 import com.chancla.chancla_lite_auth.service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,6 +25,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final CategoriaRepository categoriaRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final AuditoriaService auditoriaService;
     private final ProductoMapper productoMapper;
 
     @Autowired
@@ -31,11 +33,13 @@ public class ProductoServiceImpl implements ProductoService {
                                CategoriaRepository categoriaRepository,
                                DetalleVentaRepository detalleVentaRepository,
                                MovimientoInventarioRepository movimientoInventarioRepository,
+                               AuditoriaService auditoriaService,
                                ProductoMapper productoMapper) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.auditoriaService = auditoriaService;
         this.productoMapper = productoMapper;
     }
 
@@ -74,6 +78,12 @@ public class ProductoServiceImpl implements ProductoService {
         nuevoProducto.setCategoria(categoria);
         
         ProductoEntity productoGuardado = productoRepository.save(nuevoProducto);
+        
+        // Registro de Auditoría
+        String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        auditoriaService.registrar(usuarioActual, "CREAR", "PRODUCTO", productoGuardado.getId(), 
+            "Producto creado: " + productoGuardado.getNombre() + " (Ref: " + productoGuardado.getReferencia() + ")");
+
         return productoMapper.toResponse(productoGuardado);
     }
 
@@ -97,6 +107,12 @@ public class ProductoServiceImpl implements ProductoService {
 
         productoMapper.updateEntityFromRequest(request, productoExistente);
         ProductoEntity productoActualizado = productoRepository.save(productoExistente);
+
+        // Registro de Auditoría
+        String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        auditoriaService.registrar(usuarioActual, "ACTUALIZAR", "PRODUCTO", productoActualizado.getId(), 
+            "Producto actualizado: " + productoActualizado.getNombre() + ". Stock: " + productoActualizado.getStockActual());
+
         return productoMapper.toResponse(productoActualizado);
     }
 
@@ -117,6 +133,10 @@ public class ProductoServiceImpl implements ProductoService {
         }
 
         productoRepository.deleteById(id);
+
+        // Registro de Auditoría
+        String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        auditoriaService.registrar(usuarioActual, "ELIMINAR", "PRODUCTO", id, "Producto eliminado definitivamente.");
     }
 
     @Override

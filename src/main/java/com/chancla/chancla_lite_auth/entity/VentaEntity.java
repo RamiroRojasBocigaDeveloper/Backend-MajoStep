@@ -47,4 +47,7 @@ public class VentaEntity {
     @org.hibernate.annotations.UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
+
+    @OneToMany(mappedBy = "venta", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
+    private java.util.List<DetalleVentaEntity> detalles;
 }
