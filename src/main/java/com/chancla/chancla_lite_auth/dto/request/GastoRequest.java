@@ -29,9 +29,13 @@ public class GastoRequest {
     }
 
     private LocalDate fechaHistorica;
+    private Long usuarioId;
 
     public LocalDate getFechaHistorica() { return fechaHistorica; }
     public void setFechaHistorica(LocalDate fechaHistorica) { this.fechaHistorica = fechaHistorica; }
+
+    public Long getUsuarioId() { return usuarioId; }
+    public void setUsuarioId(Long usuarioId) { this.usuarioId = usuarioId; }
 
     public Long getSesionId() { return sesionId; }
     public void setSesionId(Long sesionId) { this.sesionId = sesionId; }

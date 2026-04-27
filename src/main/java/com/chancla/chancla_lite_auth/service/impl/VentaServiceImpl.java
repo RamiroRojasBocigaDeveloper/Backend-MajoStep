@@ -26,6 +26,7 @@ public class VentaServiceImpl implements VentaService {
     private final ProductoRepository productoRepository;
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final MetodoPagoRepository metodoPagoRepository;
+    private final UsuarioRepository usuarioRepository;
     private final VentaMapper ventaMapper;
 
     @Autowired
@@ -34,21 +35,63 @@ public class VentaServiceImpl implements VentaService {
                             ProductoRepository productoRepository,
                             SesionTrabajoRepository sesionTrabajoRepository,
                             MetodoPagoRepository metodoPagoRepository,
+                            UsuarioRepository usuarioRepository,
                             VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.productoRepository = productoRepository;
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.metodoPagoRepository = metodoPagoRepository;
+        this.usuarioRepository = usuarioRepository;
         this.ventaMapper = ventaMapper;
     }
-
     @Override
     public VentaResponse procesarVenta(VentaRequest request) {
-        // 1. Validar Sesión
-        SesionTrabajoEntity sesion = sesionTrabajoRepository.findById(request.getSesionId())
-                .orElseThrow(() -> new RuntimeException("Sesión no encontrada."));
-        if (sesion.getEstado() != EstadoSesion.ABIERTA) {
+        // 1. Validar Sesión y Permisos
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+
+        SesionTrabajoEntity sesion = null;
+
+        // Lógica de atribución de usuario para Administradores
+        if (isAdmin && request.getUsuarioId() != null) {
+            // Intentar encontrar una sesión abierta para el usuario seleccionado
+            sesion = sesionTrabajoRepository.findByUsuarioIdAndEstado(request.getUsuarioId(), EstadoSesion.ABIERTA)
+                    .orElseGet(() -> {
+                        // Si no hay sesión abierta, buscar la última sesión de ese usuario
+                        List<SesionTrabajoEntity> sesiones = sesionTrabajoRepository.findByUsuarioId(request.getUsuarioId());
+                        if (!sesiones.isEmpty()) {
+                            return sesiones.get(sesiones.size() - 1);
+                        }
+                        
+                        // Si el usuario no tiene ninguna sesión, crear una automática
+                        UsuarioEntity usuario = usuarioRepository.findById(request.getUsuarioId())
+                                .orElseThrow(() -> new RuntimeException("Usuario no encontrado ID: " + request.getUsuarioId()));
+                        
+                        SesionTrabajoEntity nuevaSesion = new SesionTrabajoEntity();
+                        nuevaSesion.setUsuario(usuario);
+                        nuevaSesion.setEstado(EstadoSesion.CERRADA); // Se crea cerrada por ser histórica/automática
+                        nuevaSesion.setRolUsuario(usuario.getRol().getNombre());
+                        
+                        // Establecer fecha/hora basada en la fecha histórica o actual
+                        java.time.LocalDateTime fechaRef = (request.getFechaHistorica() != null) 
+                            ? request.getFechaHistorica().atTime(9, 0) 
+                            : java.time.LocalDateTime.now();
+                            
+                        nuevaSesion.setHoraInicio(fechaRef);
+                        nuevaSesion.setHoraFin(fechaRef.plusHours(8));
+                        
+                        return sesionTrabajoRepository.save(nuevaSesion);
+                    });
+        } else {
+            // Flujo normal por sesionId
+            sesion = sesionTrabajoRepository.findById(request.getSesionId())
+                    .orElseThrow(() -> new RuntimeException("Sesión no encontrada."));
+        }
+
+        // Regla: Bloquea si la sesión no está abierta (excepto para administradores)
+        if (!isAdmin && sesion.getEstado() != EstadoSesion.ABIERTA) {
             throw new RuntimeException("La sesión no está abierta. No se puede procesar la venta.");
         }
 
@@ -65,10 +108,6 @@ public class VentaServiceImpl implements VentaService {
         
         if (request.getFechaHistorica() != null) {
             // Validar que el usuario sea ADMIN para usar fecha histórica
-            boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
-                    .getAuthorities().stream()
-                    .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
-            
             if (!isAdmin) {
                 throw new RuntimeException("No tienes permisos para registrar ventas con fecha histórica. Solo administradores pueden realizar esta acción.");
             }
