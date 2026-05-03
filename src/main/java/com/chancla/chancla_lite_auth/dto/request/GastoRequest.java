@@ -9,7 +9,6 @@ import java.time.LocalDate;
 
 public class GastoRequest {
 
-    @NotNull(message = "La sesión de trabajo es obligatoria")
     private Long sesionId;
 
     @NotNull(message = "La categoría de gasto es obligatoria")

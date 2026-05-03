@@ -7,7 +7,6 @@ import java.util.List;
 
 public class VentaRequest {
 
-    @NotNull(message = "La sesión de trabajo es obligatoria")
     private Long sesionId;
 
     @NotNull(message = "El método de pago es obligatorio")
