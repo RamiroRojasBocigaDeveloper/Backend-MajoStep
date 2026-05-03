@@ -20,6 +20,8 @@ public interface GastoMapper {
     @Mapping(source = "categoriaGasto.nombre", target = "categoriaGastoNombre")
     @Mapping(source = "subcategoriaGasto.id", target = "subcategoriaGastoId")
     @Mapping(source = "subcategoriaGasto.nombre", target = "subcategoriaGastoNombre")
+    @Mapping(source = "fechaRegistroManual", target = "fechaRegistroManual")
+    @Mapping(source = "sesion.usuario.nombre", target = "nombreUsuario")
     GastoResponse toResponse(GastoEntity entity);
 
     List<GastoResponse> toResponseList(List<GastoEntity> entities);

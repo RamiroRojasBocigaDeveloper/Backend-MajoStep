@@ -16,6 +16,8 @@ public class DashboardResponse {
     private Map<String, Double> gananciasPorCategoria;
     private Map<String, Double> gastosPorCategoria;
     private Map<String, Long> productosMasVendidos;
+    private Map<String, Map<String, Double>> gastosDesglosados;
+    private java.util.List<GastoResponse> detalleGastos;
 
     public DashboardResponse() {
     }
@@ -56,4 +58,10 @@ public class DashboardResponse {
 
     public Double getCostoMercancia() { return costoMercancia; }
     public void setCostoMercancia(Double costoMercancia) { this.costoMercancia = costoMercancia; }
+
+    public Map<String, Map<String, Double>> getGastosDesglosados() { return gastosDesglosados; }
+    public void setGastosDesglosados(Map<String, Map<String, Double>> gastosDesglosados) { this.gastosDesglosados = gastosDesglosados; }
+
+    public java.util.List<GastoResponse> getDetalleGastos() { return detalleGastos; }
+    public void setDetalleGastos(java.util.List<GastoResponse> detalleGastos) { this.detalleGastos = detalleGastos; }
 }

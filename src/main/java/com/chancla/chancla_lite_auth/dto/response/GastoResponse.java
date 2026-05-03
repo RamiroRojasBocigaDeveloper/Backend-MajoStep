@@ -13,11 +13,19 @@ public class GastoResponse {
     private String descripcion;
     private Double monto;
     private LocalDateTime createdAt;
+    private LocalDateTime fechaRegistroManual;
+    private String nombreUsuario;
 
     public GastoResponse() {
     }
 
     // Getters y Setters
+    public String getNombreUsuario() { return nombreUsuario; }
+    public void setNombreUsuario(String nombreUsuario) { this.nombreUsuario = nombreUsuario; }
+
+    public LocalDateTime getFechaRegistroManual() { return fechaRegistroManual; }
+    public void setFechaRegistroManual(LocalDateTime fechaRegistroManual) { this.fechaRegistroManual = fechaRegistroManual; }
+
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
