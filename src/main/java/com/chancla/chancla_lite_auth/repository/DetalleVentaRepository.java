@@ -19,4 +19,6 @@ public interface DetalleVentaRepository extends JpaRepository<DetalleVentaEntity
 
     @Query("SELECT COALESCE(SUM(d.cantidad * d.costoUnitario), 0.0) FROM DetalleVentaEntity d WHERE d.venta IN :ventas")
     Double sumCostoByVentas(@Param("ventas") List<VentaEntity> ventas);
+
+    void deleteByVentaId(Long ventaId);
 }

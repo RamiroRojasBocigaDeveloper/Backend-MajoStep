@@ -33,6 +33,17 @@ public class VentaController {
         }
     }
 
+    @PutMapping("/{id}")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<?> actualizarVenta(@PathVariable Long id, @Valid @RequestBody VentaRequest request) {
+        try {
+            VentaResponse response = ventaService.actualizarVenta(id, request);
+            return ResponseEntity.ok(response);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<VentaResponse> obtenerPorId(@PathVariable Long id) {
         try {
@@ -65,5 +76,13 @@ public class VentaController {
     @GetMapping("/usuario/{usuarioId}")
     public ResponseEntity<List<VentaResponse>> obtenerPorUsuario(@PathVariable Long usuarioId) {
         return ResponseEntity.ok(ventaService.obtenerPorUsuario(usuarioId));
+    }
+
+    @GetMapping("/rango")
+    @PreAuthorize("hasRole('ADMINISTRADOR')")
+    public ResponseEntity<List<VentaResponse>> obtenerPorRango(
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime inicio,
+            @RequestParam @org.springframework.format.annotation.DateTimeFormat(iso = org.springframework.format.annotation.DateTimeFormat.ISO.DATE_TIME) java.time.LocalDateTime fin) {
+        return ResponseEntity.ok(ventaService.obtenerPorRango(inicio, fin));
     }
 }

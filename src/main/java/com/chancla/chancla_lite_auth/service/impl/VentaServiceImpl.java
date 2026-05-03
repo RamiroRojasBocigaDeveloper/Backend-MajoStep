@@ -95,8 +95,12 @@ public class VentaServiceImpl implements VentaService {
         }
 
         // Regla: Bloquea si la sesión no está abierta (excepto para administradores)
-        if (!isAdmin && sesion.getEstado() != EstadoSesion.ABIERTA) {
+        if (!isAdmin && (sesion == null || sesion.getEstado() != EstadoSesion.ABIERTA)) {
             throw new RuntimeException("La sesión no está abierta. No se puede procesar la venta.");
+        }
+
+        if (sesion == null) {
+             throw new RuntimeException("No se pudo determinar una sesión para procesar la venta. Los administradores deben seleccionar un vendedor.");
         }
 
         // 2. Validar Método de Pago
@@ -227,6 +231,85 @@ public class VentaServiceImpl implements VentaService {
     @Transactional(readOnly = true)
     public List<VentaResponse> obtenerPorUsuario(Long usuarioId) {
         return ventaRepository.findBySesionUsuarioId(usuarioId).stream()
+                .map(v -> ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(v.getDetalles())))
+                .toList();
+    }
+
+    @Override
+    public VentaResponse actualizarVenta(Long id, VentaRequest request) {
+        // 1. Validar Permisos (Solo Admin)
+        boolean isAdmin = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication()
+                .getAuthorities().stream()
+                .anyMatch(a -> a.getAuthority().equals("ROLE_ADMINISTRADOR"));
+        
+        if (!isAdmin) {
+            throw new RuntimeException("No tienes permisos para editar ventas.");
+        }
+
+        VentaEntity venta = ventaRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Venta no encontrada."));
+
+        // 2. Validar Método de Pago
+        MetodoPagoEntity metodoPago = metodoPagoRepository.findById(request.getMetodoPagoId())
+                .orElseThrow(() -> new RuntimeException("Método de pago no encontrado."));
+        
+        venta.setMetodoPago(metodoPago);
+        venta.setDescuento(request.getDescuento());
+
+        // 3. Gestionar Detalles
+        // Eliminar detalles antiguos (Los triggers se encargarán de devolver stock)
+        detalleVentaRepository.deleteByVentaId(id);
+        
+        Double subtotal = 0.0;
+        List<DetalleVentaEntity> nuevosDetalles = new ArrayList<>();
+
+        for (VentaRequest.DetalleVentaRequest detReq : request.getDetalles()) {
+            ProductoEntity producto = productoRepository.findById(detReq.getProductoId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detReq.getProductoId()));
+
+            // NOTA: No validamos stock aquí para edición de admin, confiamos en que el admin sabe lo que hace
+            // o que el stock se ajustará después. El trigger igual funcionará.
+
+            DetalleVentaEntity detalle = new DetalleVentaEntity();
+            detalle.setVenta(venta);
+            detalle.setProducto(producto);
+            detalle.setCantidad(detReq.getCantidad());
+            
+            if (detReq.getPrecioUnitario() != null) {
+                detalle.setPrecioUnitario(detReq.getPrecioUnitario());
+            } else {
+                detalle.setPrecioUnitario(producto.getPrecioVenta());
+            }
+            
+            detalle.setCostoUnitario(producto.getPrecioCompra());
+            
+            nuevosDetalles.add(detalle);
+            subtotal += (detalle.getPrecioUnitario() * detalle.getCantidad());
+        }
+
+        venta.setSubtotal(subtotal);
+        venta.setTotal(subtotal - request.getDescuento());
+
+        VentaEntity ventaGuardada = ventaRepository.save(venta);
+        
+        // Guardar detalles
+        for (DetalleVentaEntity d : nuevosDetalles) {
+            d.setVenta(ventaGuardada);
+            detalleVentaRepository.save(d);
+        }
+
+        // Auditoría
+        String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
+        auditoriaService.registrar(usuarioActual, "EDITAR", "VENTA", ventaGuardada.getId(), 
+            "Venta " + ventaGuardada.getNumeroFactura() + " editada por administrador.");
+
+        return ventaMapper.toResponse(ventaGuardada, ventaMapper.toDetalleResponseList(nuevosDetalles));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<VentaResponse> obtenerPorRango(java.time.LocalDateTime inicio, java.time.LocalDateTime fin) {
+        return ventaRepository.findByRangoFechas(inicio, fin).stream()
                 .map(v -> ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(v.getDetalles())))
                 .toList();
     }
