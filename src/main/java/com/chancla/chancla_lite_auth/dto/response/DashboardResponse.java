@@ -1,6 +1,7 @@
 package com.chancla.chancla_lite_auth.dto.response;
 
 import java.util.Map;
+import java.util.List;
 
 public class DashboardResponse {
 
@@ -17,7 +18,8 @@ public class DashboardResponse {
     private Map<String, Double> gastosPorCategoria;
     private Map<String, Long> productosMasVendidos;
     private Map<String, Map<String, Double>> gastosDesglosados;
-    private java.util.List<GastoResponse> detalleGastos;
+    private List<VentaResponse> detalleVentas;
+    private List<GastoResponse> detalleGastos;
 
     public DashboardResponse() {
     }
@@ -62,6 +64,9 @@ public class DashboardResponse {
     public Map<String, Map<String, Double>> getGastosDesglosados() { return gastosDesglosados; }
     public void setGastosDesglosados(Map<String, Map<String, Double>> gastosDesglosados) { this.gastosDesglosados = gastosDesglosados; }
 
-    public java.util.List<GastoResponse> getDetalleGastos() { return detalleGastos; }
-    public void setDetalleGastos(java.util.List<GastoResponse> detalleGastos) { this.detalleGastos = detalleGastos; }
+    public List<VentaResponse> getDetalleVentas() { return detalleVentas; }
+    public void setDetalleVentas(List<VentaResponse> detalleVentas) { this.detalleVentas = detalleVentas; }
+
+    public List<GastoResponse> getDetalleGastos() { return detalleGastos; }
+    public void setDetalleGastos(List<GastoResponse> detalleGastos) { this.detalleGastos = detalleGastos; }
 }

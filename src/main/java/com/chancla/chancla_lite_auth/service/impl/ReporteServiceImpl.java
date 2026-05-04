@@ -11,6 +11,8 @@ import com.chancla.chancla_lite_auth.repository.GastoRepository;
 import com.chancla.chancla_lite_auth.repository.SueldoPagadoRepository;
 import com.chancla.chancla_lite_auth.repository.VentaRepository;
 import com.chancla.chancla_lite_auth.mapper.GastoMapper;
+import com.chancla.chancla_lite_auth.mapper.VentaMapper;
+import com.chancla.chancla_lite_auth.dto.response.VentaResponse;
 import com.chancla.chancla_lite_auth.service.ReporteService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -32,18 +34,21 @@ public class ReporteServiceImpl implements ReporteService {
     private final SueldoPagadoRepository sueldoPagadoRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final GastoMapper gastoMapper;
+    private final VentaMapper ventaMapper;
 
     @Autowired
     public ReporteServiceImpl(VentaRepository ventaRepository,
                               GastoRepository gastoRepository,
                               SueldoPagadoRepository sueldoPagadoRepository,
                               DetalleVentaRepository detalleVentaRepository,
-                              GastoMapper gastoMapper) {
+                              GastoMapper gastoMapper,
+                              VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
         this.gastoRepository = gastoRepository;
         this.sueldoPagadoRepository = sueldoPagadoRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.gastoMapper = gastoMapper;
+        this.ventaMapper = ventaMapper;
     }
 
     @Override
@@ -111,8 +116,13 @@ public class ReporteServiceImpl implements ReporteService {
         Map<String, Double> ventasPorCat = new HashMap<>();
         Map<String, Double> gananciasPorCat = new HashMap<>();
 
+        List<VentaResponse> ventasDetalladas = new java.util.ArrayList<>();
         for (VentaEntity v : ventas) {
             List<DetalleVentaEntity> detalles = detalleVentaRepository.findByVentaId(v.getId());
+            
+            // Agregar al historial detallado
+            ventasDetalladas.add(ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(detalles)));
+
             for (DetalleVentaEntity d : detalles) {
                 // Productos Favoritos
                 String nombreProd = d.getProducto().getNombre();
@@ -127,6 +137,9 @@ public class ReporteServiceImpl implements ReporteService {
                 gananciasPorCat.put(nombreCat, gananciasPorCat.getOrDefault(nombreCat, 0.0) + margenDetalle);
             }
         }
+        
+        ventasDetalladas.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
+        dashboard.setDetalleVentas(ventasDetalladas);
         
         dashboard.setProductosMasVendidos(productosFavoritos);
         dashboard.setVentasPorCategoria(ventasPorCat);

@@ -14,12 +14,19 @@ public class VentaResponse {
     private Double descuento;
     private Double total;
     private LocalDateTime createdAt;
+    private LocalDateTime fechaRegistroManual;
+    private String nombreVendedor;
     private List<DetalleVentaResponse> detalles;
 
     public VentaResponse() {
     }
 
     // Getters y Setters
+    public String getNombreVendedor() { return nombreVendedor; }
+    public void setNombreVendedor(String nombreVendedor) { this.nombreVendedor = nombreVendedor; }
+
+    public LocalDateTime getFechaRegistroManual() { return fechaRegistroManual; }
+    public void setFechaRegistroManual(LocalDateTime fechaRegistroManual) { this.fechaRegistroManual = fechaRegistroManual; }
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 
@@ -55,6 +62,7 @@ public class VentaResponse {
         private Long productoId;
         private String productoNombre;
         private String productoReferencia;
+        private String categoriaNombre;
         private Integer cantidad;
         private Double precioUnitario;
         private Double subtotalItem;
@@ -63,6 +71,8 @@ public class VentaResponse {
         }
 
         // Getters y Setters
+        public String getCategoriaNombre() { return categoriaNombre; }
+        public void setCategoriaNombre(String categoriaNombre) { this.categoriaNombre = categoriaNombre; }
         public Long getId() { return id; }
         public void setId(Long id) { this.id = id; }
 
