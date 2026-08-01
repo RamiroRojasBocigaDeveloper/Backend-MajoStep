@@ -55,6 +55,26 @@ public class DataInitializer {
                 System.out.println(">>> [DEBUG] ADMIN ya existe");
             }
 
+            // 3. Crear usuario Rami Test
+            String ramiEmail = "rami@tienda.com";
+            if (usuarioRepository.findByEmail(ramiEmail).isEmpty()) {
+                RolEntity adminRol = rolRepository.findByNombre(RolNombre.ADMINISTRADOR.name())
+                        .orElseThrow(() -> new RuntimeException("Rol ADMINISTRADOR no encontrado"));
+
+                UsuarioEntity rami = new UsuarioEntity();
+                rami.setNombre("Rami Test");
+                rami.setEmail(ramiEmail);
+                rami.setPassword("$2a$12$LXXDiNNpGHIn1FgTMh8kO.oZtj/zes2UfRYrCAoYbiEeq6gasvip2"); // Ya esta hasheada
+                rami.setRol(adminRol);
+                rami.setActivo(true);
+                rami.setSueldoDiario(0.0);
+
+                usuarioRepository.save(rami);
+                System.out.println(">>> [DEBUG] Rami Test creado correctamente");
+            } else {
+                System.out.println(">>> [DEBUG] Rami Test ya existe");
+            }
+
         } catch (Exception e) {
             System.err.println(">>> [DEBUG] ERROR EN DATA INITIALIZER: " + e.getMessage());
         }
