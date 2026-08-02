@@ -17,4 +17,6 @@ public interface SueldoPagadoService {
     void eliminarPago(Long id);
 
     SueldoPagadoResponse obtenerPorId(Long id);
+
+    String registrarSueldoManual(Long usuarioId, Long sesionId, Double monto);
 }

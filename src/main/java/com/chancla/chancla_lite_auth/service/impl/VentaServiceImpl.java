@@ -4,6 +4,7 @@ import com.chancla.chancla_lite_auth.dto.request.VentaRequest;
 import com.chancla.chancla_lite_auth.dto.response.VentaResponse;
 import com.chancla.chancla_lite_auth.entity.*;
 import com.chancla.chancla_lite_auth.enums.EstadoSesion;
+import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
 import com.chancla.chancla_lite_auth.mapper.VentaMapper;
 import com.chancla.chancla_lite_auth.repository.*;
 import com.chancla.chancla_lite_auth.service.AuditoriaService;
@@ -30,6 +31,7 @@ public class VentaServiceImpl implements VentaService {
     private final UsuarioRepository usuarioRepository;
     private final AuditoriaService auditoriaService;
     private final VentaMapper ventaMapper;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
 
     @Autowired
     public VentaServiceImpl(VentaRepository ventaRepository,
@@ -39,7 +41,8 @@ public class VentaServiceImpl implements VentaService {
                             MetodoPagoRepository metodoPagoRepository,
                             UsuarioRepository usuarioRepository,
                             AuditoriaService auditoriaService,
-                            VentaMapper ventaMapper) {
+                            VentaMapper ventaMapper,
+                            MovimientoInventarioRepository movimientoInventarioRepository) {
         this.ventaRepository = ventaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.productoRepository = productoRepository;
@@ -48,6 +51,7 @@ public class VentaServiceImpl implements VentaService {
         this.usuarioRepository = usuarioRepository;
         this.auditoriaService = auditoriaService;
         this.ventaMapper = ventaMapper;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
     }
     @Override
     public VentaResponse procesarVenta(VentaRequest request) {
@@ -137,8 +141,9 @@ public class VentaServiceImpl implements VentaService {
                         " (Pedido: " + detReq.getCantidad() + ", Disponible: " + producto.getStockActual() + ")");
             }
 
-            // El stock se descuenta automáticamente por el Trigger de la Base de Datos
-            // trg_detalle_venta_ai -> inserta en movimientos_inventario -> trg_mov_inv_ai -> descuenta stock real.
+            // Reemplazo del Trigger: Descontar stock e insertar movimiento de inventario
+            producto.setStockActual(producto.getStockActual() - detReq.getCantidad());
+            productoRepository.save(producto);
             
             // Crear Detalle
             DetalleVentaEntity detalle = new DetalleVentaEntity();
@@ -156,9 +161,6 @@ public class VentaServiceImpl implements VentaService {
             
             detalles.add(detalle);
             subtotal += (detalle.getPrecioUnitario() * detalle.getCantidad());
-
-            // Nota: No es necesario crear MovimientoInventarioEntity aquí.
-            // El trigger 'trg_detalle_venta_ai' de la base de datos lo generará automáticamente.
         }
 
         venta.setSubtotal(subtotal);
@@ -172,14 +174,20 @@ public class VentaServiceImpl implements VentaService {
             ventaGuardada.getNumeroFactura(), ventaGuardada.getTotal(), sesion.getUsuario().getNombre());
         auditoriaService.registrar(usuarioActual, "CREAR", "VENTA", ventaGuardada.getId(), detallesLog);
         
-        // Asignar referenciaId a los movimientos y guardar detalles
+        // Asignar referenciaId a los detalles y crear movimientos de inventario
         for (DetalleVentaEntity d : detalles) {
             d.setVenta(ventaGuardada);
             detalleVentaRepository.save(d);
+            
+            // Registrar Movimiento de Inventario
+            MovimientoInventarioEntity mov = new MovimientoInventarioEntity();
+            mov.setProducto(d.getProducto());
+            mov.setTipo(TipoMovimiento.SALIDA);
+            mov.setCantidad(d.getCantidad());
+            mov.setMotivo("Venta");
+            mov.setReferenciaId(ventaGuardada.getId());
+            movimientoInventarioRepository.save(mov);
         }
-        
-        // Actualizar movimientos con el ID de la venta (opcional pero recomendado)
-        // Por simplicidad, aquí los dejamos así o podrías buscarlos y asignarles el ID.
 
         return ventaMapper.toResponse(ventaGuardada, ventaMapper.toDetalleResponseList(detalles));
     }
@@ -257,7 +265,21 @@ public class VentaServiceImpl implements VentaService {
         venta.setDescuento(request.getDescuento());
 
         // 3. Gestionar Detalles
-        // Eliminar detalles antiguos (Los triggers se encargarán de devolver stock)
+        // Reversar detalles antiguos: recuperar stock y registrar movimiento de entrada
+        List<DetalleVentaEntity> detallesAntiguos = detalleVentaRepository.findByVentaId(id);
+        for (DetalleVentaEntity detAntiguo : detallesAntiguos) {
+            ProductoEntity prodAntiguo = detAntiguo.getProducto();
+            prodAntiguo.setStockActual(prodAntiguo.getStockActual() + detAntiguo.getCantidad());
+            productoRepository.save(prodAntiguo);
+            
+            MovimientoInventarioEntity movReverso = new MovimientoInventarioEntity();
+            movReverso.setProducto(prodAntiguo);
+            movReverso.setTipo(TipoMovimiento.ENTRADA);
+            movReverso.setCantidad(detAntiguo.getCantidad());
+            movReverso.setMotivo("Reverso edición venta");
+            movReverso.setReferenciaId(venta.getId());
+            movimientoInventarioRepository.save(movReverso);
+        }
         detalleVentaRepository.deleteByVentaId(id);
         
         Double subtotal = 0.0;
@@ -267,8 +289,9 @@ public class VentaServiceImpl implements VentaService {
             ProductoEntity producto = productoRepository.findById(detReq.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detReq.getProductoId()));
 
-            // NOTA: No validamos stock aquí para edición de admin, confiamos en que el admin sabe lo que hace
-            // o que el stock se ajustará después. El trigger igual funcionará.
+            // Descontar nuevo stock
+            producto.setStockActual(producto.getStockActual() - detReq.getCantidad());
+            productoRepository.save(producto);
 
             DetalleVentaEntity detalle = new DetalleVentaEntity();
             detalle.setVenta(venta);
@@ -292,10 +315,18 @@ public class VentaServiceImpl implements VentaService {
 
         VentaEntity ventaGuardada = ventaRepository.save(venta);
         
-        // Guardar detalles
+        // Guardar detalles y movimientos de inventario nuevos
         for (DetalleVentaEntity d : nuevosDetalles) {
             d.setVenta(ventaGuardada);
             detalleVentaRepository.save(d);
+            
+            MovimientoInventarioEntity mov = new MovimientoInventarioEntity();
+            mov.setProducto(d.getProducto());
+            mov.setTipo(TipoMovimiento.SALIDA);
+            mov.setCantidad(d.getCantidad());
+            mov.setMotivo("Cambio de producto en venta");
+            mov.setReferenciaId(ventaGuardada.getId());
+            movimientoInventarioRepository.save(mov);
         }
 
         // Auditoría

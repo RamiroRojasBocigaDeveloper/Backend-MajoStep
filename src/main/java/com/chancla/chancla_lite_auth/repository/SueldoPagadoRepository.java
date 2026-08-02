@@ -12,4 +12,5 @@ public interface SueldoPagadoRepository extends JpaRepository<SueldoPagadoEntity
     List<SueldoPagadoEntity> findByUsuarioId(Long usuarioId);
     List<SueldoPagadoEntity> findBySesionId(Long sesionId);
     List<SueldoPagadoEntity> findByFechaPagoBetween(LocalDate fechaInicio, LocalDate fechaFin);
+    boolean existsByUsuarioIdAndFechaPago(Long usuarioId, LocalDate fechaPago);
 }

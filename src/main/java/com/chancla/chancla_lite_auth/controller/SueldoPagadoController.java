@@ -57,6 +57,19 @@ public class SueldoPagadoController {
         }
     }
 
+    @PostMapping("/manual")
+    @PreAuthorize("hasRole('ADMINISTRADOR') or hasRole('VENDEDOR')")
+    public ResponseEntity<?> registrarSueldoManual(@Valid @RequestBody SueldoPagadoRequest request) {
+        try {
+            String resultado = sueldoPagadoService.registrarSueldoManual(
+                    request.getUsuarioId(), request.getSesionId(), request.getMonto()
+            );
+            return ResponseEntity.status(HttpStatus.CREATED).body(resultado);
+        } catch (RuntimeException e) {
+            return ResponseEntity.badRequest().body(e.getMessage());
+        }
+    }
+
     @DeleteMapping("/{id}")
     @PreAuthorize("hasRole('ADMINISTRADOR')")
     public ResponseEntity<?> eliminarPago(@PathVariable Long id) {

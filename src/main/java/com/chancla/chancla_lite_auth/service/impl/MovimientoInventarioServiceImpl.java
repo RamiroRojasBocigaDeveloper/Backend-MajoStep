@@ -63,8 +63,14 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
             }
         }
 
-        // Ya NO guardamos el producto manualmente. 
-        // El guardado del movimiento invocará el trigger trg_mov_inv_ai y actualizará el stock en la BD automáticamente.
+        // Actualizar el stock manualmente (Reemplazo del trigger trg_mov_inv_ai)
+        if (tipo == TipoMovimiento.ENTRADA) {
+            producto.setStockActual(producto.getStockActual() + request.getCantidad());
+        } else if (tipo == TipoMovimiento.SALIDA || tipo == TipoMovimiento.AJUSTE) {
+            producto.setStockActual(producto.getStockActual() - request.getCantidad());
+        }
+        // Guardamos el producto con su nuevo stock y/o precio
+        productoRepository.save(producto);
 
         // Crear Movimiento
         MovimientoInventarioEntity movimento = movimientoInventarioMapper.toEntity(request);
