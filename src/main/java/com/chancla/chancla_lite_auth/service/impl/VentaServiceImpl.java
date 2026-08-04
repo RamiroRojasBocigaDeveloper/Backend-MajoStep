@@ -290,6 +290,11 @@ public class VentaServiceImpl implements VentaService {
             ProductoEntity producto = productoRepository.findByIdForUpdate(detReq.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detReq.getProductoId()));
 
+            if (producto.getStockActual() < detReq.getCantidad()) {
+                throw new RuntimeException("Stock insuficiente para el producto: " + producto.getNombre() + 
+                        " (Pedido: " + detReq.getCantidad() + ", Disponible: " + producto.getStockActual() + ")");
+            }
+
             // Descontar nuevo stock
             producto.setStockActual(producto.getStockActual() - detReq.getCantidad());
             productoRepository.save(producto);
