@@ -6,38 +6,42 @@ import com.chancla.chancla_lite_auth.enums.RolNombre;
 import com.chancla.chancla_lite_auth.repository.RolRepository;
 import com.chancla.chancla_lite_auth.repository.UsuarioRepository;
 import lombok.RequiredArgsConstructor;
-// import org.springframework.boot.CommandLineRunner;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.boot.context.event.ApplicationReadyEvent;
+import org.springframework.context.annotation.Profile;
 import org.springframework.context.event.EventListener;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
-//import org.springframework.transaction.annotation.Transactional;
 
+import java.util.List;
+
+/**
+ * Crea datos de arranque SOLO en el perfil dev. Nunca se ejecuta en prod.
+ */
 @Component
+@Profile("dev")
 @RequiredArgsConstructor
 public class DataInitializer {
+
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     private final RolRepository rolRepository;
     private final UsuarioRepository usuarioRepository;
     private final PasswordEncoder passwordEncoder;
 
     @EventListener(ApplicationReadyEvent.class)
-    // @Transactional
     public void init() {
         try {
-            System.out.println(">>> [DEBUG] INICIANDO DATA INITIALIZER...");
-
-            // 1. Crear roles básicos si no existen
+            // 1. Crear roles básicos si no existen (match sin distinguir mayúsculas)
             crearRolSiNoExiste(RolNombre.ADMINISTRADOR);
             crearRolSiNoExiste(RolNombre.VENDEDOR);
             crearRolSiNoExiste(RolNombre.JEFE);
 
-            // 2. Crear usuario admin inicial
+            // 2. Crear usuario admin inicial (solo si no existe)
             String adminEmail = "admin@majostep.com";
-
             if (usuarioRepository.findByEmail(adminEmail).isEmpty()) {
-
-                RolEntity adminRol = rolRepository.findByNombre(RolNombre.ADMINISTRADOR.name())
+                RolEntity adminRol = buscarRol(RolNombre.ADMINISTRADOR)
                         .orElseThrow(() -> new RuntimeException("Rol ADMINISTRADOR no encontrado"));
 
                 UsuarioEntity admin = new UsuarioEntity();
@@ -49,42 +53,43 @@ public class DataInitializer {
                 admin.setSueldoDiario(0.0);
 
                 usuarioRepository.save(admin);
-
-                System.out.println(">>> [DEBUG] ADMIN creado correctamente");
-            } else {
-                System.out.println(">>> [DEBUG] ADMIN ya existe");
+                log.debug("Admin creado correctamente");
             }
 
-            // 3. Crear usuario Rami Test
+            // 3. Crear usuario Rami Test (solo dev)
             String ramiEmail = "rami@tienda.com";
             if (usuarioRepository.findByEmail(ramiEmail).isEmpty()) {
-                RolEntity adminRol = rolRepository.findByNombre(RolNombre.ADMINISTRADOR.name())
+                RolEntity adminRol = buscarRol(RolNombre.ADMINISTRADOR)
                         .orElseThrow(() -> new RuntimeException("Rol ADMINISTRADOR no encontrado"));
 
                 UsuarioEntity rami = new UsuarioEntity();
                 rami.setNombre("Rami Test");
                 rami.setEmail(ramiEmail);
-                rami.setPassword("$2a$12$LXXDiNNpGHIn1FgTMh8kO.oZtj/zes2UfRYrCAoYbiEeq6gasvip2"); // Ya esta hasheada
+                rami.setPassword(passwordEncoder.encode("admin123"));
                 rami.setRol(adminRol);
                 rami.setActivo(true);
                 rami.setSueldoDiario(0.0);
 
                 usuarioRepository.save(rami);
-                System.out.println(">>> [DEBUG] Rami Test creado correctamente");
-            } else {
-                System.out.println(">>> [DEBUG] Rami Test ya existe");
+                log.debug("Rami Test creado correctamente");
             }
-
         } catch (Exception e) {
-            System.err.println(">>> [DEBUG] ERROR EN DATA INITIALIZER: " + e.getMessage());
+            log.error("Error en DataInitializer: {}", e.getMessage());
         }
     }
 
     private void crearRolSiNoExiste(RolNombre rolNombre) {
-        if (rolRepository.findByNombre(rolNombre.name()).isEmpty()) {
+        if (buscarRol(rolNombre).isEmpty()) {
             RolEntity rol = new RolEntity();
             rol.setNombre(rolNombre.name());
             rolRepository.save(rol);
         }
+    }
+
+    private java.util.Optional<RolEntity> buscarRol(RolNombre rolNombre) {
+        List<RolEntity> roles = rolRepository.findAll();
+        return roles.stream()
+                .filter(r -> r.getNombre() != null && r.getNombre().equalsIgnoreCase(rolNombre.name()))
+                .findFirst();
     }
 }

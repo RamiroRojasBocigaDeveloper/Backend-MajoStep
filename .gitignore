@@ -37,5 +37,12 @@ build/
 .env.local
 .env.*.local
 
+### Artefactos de build/debug locales ###
+/*.log
+/*.txt
+/dump-*.sql
+/scratch_excel/
+/scratch_load/
+
 ### Node.js ###
 node_modules/

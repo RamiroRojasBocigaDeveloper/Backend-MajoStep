@@ -36,6 +36,18 @@ public class JwtTokenProvider {
         return claims.getSubject();
     }
 
+    /**
+     * Valida la firma y la expiración en una sola pasada.
+     * Devuelve el email (subject) si el token es válido, o null en caso contrario.
+     */
+    public String obtenerEmailSiValido(String token) {
+        try {
+            return obtenerEmailDeToken(token);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
     public boolean validarToken(String token) {
         try {
             obtenerClaims(token);
