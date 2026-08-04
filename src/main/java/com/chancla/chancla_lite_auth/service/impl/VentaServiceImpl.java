@@ -131,9 +131,9 @@ public class VentaServiceImpl implements VentaService {
         Double subtotal = 0.0;
         List<DetalleVentaEntity> detalles = new ArrayList<>();
 
-        // 4. Procesar Detalles y Stock
+        // 4. Procesar Detalles y Stock (con bloqueo pesimista para evitar sobreventa)
         for (VentaRequest.DetalleVentaRequest detReq : request.getDetalles()) {
-            ProductoEntity producto = productoRepository.findById(detReq.getProductoId())
+            ProductoEntity producto = productoRepository.findByIdForUpdate(detReq.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detReq.getProductoId()));
 
             if (producto.getStockActual() < detReq.getCantidad()) {
@@ -265,10 +265,11 @@ public class VentaServiceImpl implements VentaService {
         venta.setDescuento(request.getDescuento());
 
         // 3. Gestionar Detalles
-        // Reversar detalles antiguos: recuperar stock y registrar movimiento de entrada
+        // Reversar detalles antiguos: recuperar stock y registrar movimiento de entrada (con bloqueo pesimista)
         List<DetalleVentaEntity> detallesAntiguos = detalleVentaRepository.findByVentaId(id);
         for (DetalleVentaEntity detAntiguo : detallesAntiguos) {
-            ProductoEntity prodAntiguo = detAntiguo.getProducto();
+            ProductoEntity prodAntiguo = productoRepository.findByIdForUpdate(detAntiguo.getProducto().getId())
+                    .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detAntiguo.getProducto().getId()));
             prodAntiguo.setStockActual(prodAntiguo.getStockActual() + detAntiguo.getCantidad());
             productoRepository.save(prodAntiguo);
             
@@ -286,7 +287,7 @@ public class VentaServiceImpl implements VentaService {
         List<DetalleVentaEntity> nuevosDetalles = new ArrayList<>();
 
         for (VentaRequest.DetalleVentaRequest detReq : request.getDetalles()) {
-            ProductoEntity producto = productoRepository.findById(detReq.getProductoId())
+            ProductoEntity producto = productoRepository.findByIdForUpdate(detReq.getProductoId())
                     .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + detReq.getProductoId()));
 
             // Descontar nuevo stock

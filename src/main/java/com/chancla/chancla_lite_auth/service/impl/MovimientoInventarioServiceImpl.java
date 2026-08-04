@@ -34,7 +34,7 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
 
     @Override
     public MovimientoInventarioResponse registrarMovimiento(MovimientoInventarioRequest request) {
-        ProductoEntity producto = productoRepository.findById(request.getProductoId())
+        ProductoEntity producto = productoRepository.findByIdForUpdate(request.getProductoId())
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + request.getProductoId()));
 
         TipoMovimiento tipo = TipoMovimiento.valueOf(request.getTipo().toUpperCase());
