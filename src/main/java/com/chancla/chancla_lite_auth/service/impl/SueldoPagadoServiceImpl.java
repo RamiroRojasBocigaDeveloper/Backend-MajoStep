@@ -10,10 +10,6 @@ import com.chancla.chancla_lite_auth.mapper.SueldoPagadoMapper;
 import com.chancla.chancla_lite_auth.repository.SesionTrabajoRepository;
 import com.chancla.chancla_lite_auth.repository.SueldoPagadoRepository;
 import com.chancla.chancla_lite_auth.repository.UsuarioRepository;
-import com.chancla.chancla_lite_auth.repository.GastoRepository;
-import com.chancla.chancla_lite_auth.repository.CategoriaGastoRepository;
-import com.chancla.chancla_lite_auth.entity.GastoEntity;
-import com.chancla.chancla_lite_auth.entity.CategoriaGastoEntity;
 import com.chancla.chancla_lite_auth.service.SueldoPagadoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -30,22 +26,16 @@ public class SueldoPagadoServiceImpl implements SueldoPagadoService {
     private final UsuarioRepository usuarioRepository;
     private final SesionTrabajoRepository sesionTrabajoRepository;
     private final SueldoPagadoMapper sueldoPagadoMapper;
-    private final GastoRepository gastoRepository;
-    private final CategoriaGastoRepository categoriaGastoRepository;
 
     @Autowired
     public SueldoPagadoServiceImpl(SueldoPagadoRepository sueldoPagadoRepository,
                                    UsuarioRepository usuarioRepository,
                                    SesionTrabajoRepository sesionTrabajoRepository,
-                                   SueldoPagadoMapper sueldoPagadoMapper,
-                                   GastoRepository gastoRepository,
-                                   CategoriaGastoRepository categoriaGastoRepository) {
+                                   SueldoPagadoMapper sueldoPagadoMapper) {
         this.sueldoPagadoRepository = sueldoPagadoRepository;
         this.usuarioRepository = usuarioRepository;
         this.sesionTrabajoRepository = sesionTrabajoRepository;
         this.sueldoPagadoMapper = sueldoPagadoMapper;
-        this.gastoRepository = gastoRepository;
-        this.categoriaGastoRepository = categoriaGastoRepository;
     }
 
     @Override
@@ -126,22 +116,12 @@ public class SueldoPagadoServiceImpl implements SueldoPagadoService {
             throw new RuntimeException("Ya se registró sueldo para este usuario hoy");
         }
 
-        CategoriaGastoEntity catNomina = categoriaGastoRepository.findByNombreIgnoreCase("nomina")
-                .orElseThrow(() -> new RuntimeException("Categoría 'nomina' no encontrada"));
-
         SueldoPagadoEntity sueldo = new SueldoPagadoEntity();
         sueldo.setUsuario(usuario);
         sueldo.setSesion(sesion);
         sueldo.setMonto(monto);
         sueldo.setFechaPago(java.time.LocalDate.now());
         sueldoPagadoRepository.save(sueldo);
-
-        GastoEntity gasto = new GastoEntity();
-        gasto.setSesion(sesion);
-        gasto.setCategoriaGasto(catNomina);
-        gasto.setDescripcion("Sueldo diario - " + usuario.getNombre());
-        gasto.setMonto(monto);
-        gastoRepository.save(gasto);
 
         return "Sueldo registrado correctamente";
     }
