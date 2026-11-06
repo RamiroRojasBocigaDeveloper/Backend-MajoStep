@@ -24,6 +24,8 @@ public class GastoRequest {
 
     private Long subcategoriaGastoId;
 
+    private boolean esDeCaja = true;
+
     public GastoRequest() {
     }
 
@@ -50,4 +52,7 @@ public class GastoRequest {
 
     public Double getMonto() { return monto; }
     public void setMonto(Double monto) { this.monto = monto; }
+
+    public boolean isEsDeCaja() { return esDeCaja; }
+    public void setEsDeCaja(boolean esDeCaja) { this.esDeCaja = esDeCaja; }
 }
