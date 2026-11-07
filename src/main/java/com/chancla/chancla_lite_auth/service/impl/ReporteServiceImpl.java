@@ -1,13 +1,16 @@
 package com.chancla.chancla_lite_auth.service.impl;
 
 import com.chancla.chancla_lite_auth.dto.response.DashboardResponse;
+import com.chancla.chancla_lite_auth.dto.response.EstadisticasInversionResponse;
 import com.chancla.chancla_lite_auth.dto.response.GastoResponse;
 import com.chancla.chancla_lite_auth.entity.DetalleVentaEntity;
 import com.chancla.chancla_lite_auth.entity.GastoEntity;
 import com.chancla.chancla_lite_auth.entity.SueldoPagadoEntity;
 import com.chancla.chancla_lite_auth.entity.VentaEntity;
+import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
 import com.chancla.chancla_lite_auth.repository.DetalleVentaRepository;
 import com.chancla.chancla_lite_auth.repository.GastoRepository;
+import com.chancla.chancla_lite_auth.repository.MovimientoInventarioRepository;
 import com.chancla.chancla_lite_auth.repository.SueldoPagadoRepository;
 import com.chancla.chancla_lite_auth.repository.VentaRepository;
 import com.chancla.chancla_lite_auth.mapper.GastoMapper;
@@ -29,10 +32,13 @@ import java.util.stream.Collectors;
 @Transactional(readOnly = true)
 public class ReporteServiceImpl implements ReporteService {
 
+    private static final String CATEGORIA_GASTOS_OPERATIVOS = "Logistica para surtir";
+
     private final VentaRepository ventaRepository;
     private final GastoRepository gastoRepository;
     private final SueldoPagadoRepository sueldoPagadoRepository;
     private final DetalleVentaRepository detalleVentaRepository;
+    private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final GastoMapper gastoMapper;
     private final VentaMapper ventaMapper;
 
@@ -41,12 +47,14 @@ public class ReporteServiceImpl implements ReporteService {
                               GastoRepository gastoRepository,
                               SueldoPagadoRepository sueldoPagadoRepository,
                               DetalleVentaRepository detalleVentaRepository,
+                              MovimientoInventarioRepository movimientoInventarioRepository,
                               GastoMapper gastoMapper,
                               VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
         this.gastoRepository = gastoRepository;
         this.sueldoPagadoRepository = sueldoPagadoRepository;
         this.detalleVentaRepository = detalleVentaRepository;
+        this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.gastoMapper = gastoMapper;
         this.ventaMapper = ventaMapper;
     }
@@ -207,5 +215,79 @@ public class ReporteServiceImpl implements ReporteService {
         dashboard.setDetalleGastos(egresosDetallados);
 
         return dashboard;
+    }
+
+    @Override
+    public EstadisticasInversionResponse obtenerEstadisticasInversion(LocalDate inicio, LocalDate fin) {
+        LocalDateTime inicioDateTime = inicio.atStartOfDay();
+        LocalDateTime finDateTime = fin.atTime(23, 59, 59, 999_000_000);
+
+        List<GastoEntity> gastosPeriodo = filtrarGastosOperativos(
+                gastoRepository.findByRangoFechas(inicioDateTime, finDateTime));
+
+        double gastosOperativos = sumarGastos(gastosPeriodo);
+        double inversionPeriodo = valor(movimientoInventarioRepository
+                .sumComprasEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+
+        double inversionHastaFin = valor(movimientoInventarioRepository
+                .sumComprasHasta(TipoMovimiento.ENTRADA, finDateTime));
+
+        double gastosAcumulados = sumarGastos(filtrarGastosOperativos(gastoRepository.findAll()));
+        double inversionAcumulada = valor(movimientoInventarioRepository.sumCompras(TipoMovimiento.ENTRADA));
+
+        EstadisticasInversionResponse response = new EstadisticasInversionResponse();
+        response.setGastosOperativos(redondear(gastosOperativos));
+        response.setInversionMercanciaPeriodo(redondear(inversionPeriodo));
+        response.setInversionMercanciaTotal(redondear(inversionHastaFin));
+        response.setTotalInvertidoPeriodo(redondear(gastosOperativos + inversionPeriodo));
+        response.setTotalInvertidoAcumulado(redondear(gastosAcumulados + inversionAcumulada));
+        response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastosPeriodo));
+        response.setComprasPorProducto(movimientoInventarioRepository
+                .findComprasPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+        return response;
+    }
+
+    @Override
+    public EstadisticasInversionResponse obtenerEstadisticasInversionGlobal() {
+        List<GastoEntity> gastos = filtrarGastosOperativos(gastoRepository.findAll());
+
+        double gastosOperativos = sumarGastos(gastos);
+        double compras = valor(movimientoInventarioRepository.sumCompras(TipoMovimiento.ENTRADA));
+
+        EstadisticasInversionResponse response = new EstadisticasInversionResponse();
+        response.setGastosOperativos(redondear(gastosOperativos));
+        response.setInversionMercanciaPeriodo(redondear(compras));
+        response.setInversionMercanciaTotal(redondear(compras));
+        response.setTotalInvertidoPeriodo(redondear(gastosOperativos + compras));
+        response.setTotalInvertidoAcumulado(redondear(gastosOperativos + compras));
+        response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastos));
+        response.setComprasPorProducto(movimientoInventarioRepository.findComprasPorProducto(TipoMovimiento.ENTRADA));
+        return response;
+    }
+
+    private List<GastoEntity> filtrarGastosOperativos(List<GastoEntity> gastos) {
+        return gastos.stream()
+                .filter(g -> g.getCategoriaGasto() != null
+                        && CATEGORIA_GASTOS_OPERATIVOS.equalsIgnoreCase(g.getCategoriaGasto().getNombre()))
+                .toList();
+    }
+
+    private double sumarGastos(List<GastoEntity> gastos) {
+        return gastos.stream().mapToDouble(GastoEntity::getMonto).sum();
+    }
+
+    private double valor(Double valor) {
+        return valor != null ? valor : 0.0;
+    }
+
+    private double redondear(double valor) {
+        return Math.round(valor * 100.0) / 100.0;
+    }
+
+    private Map<String, Double> agruparGastosPorSubcategoria(List<GastoEntity> gastos) {
+        return gastos.stream().collect(Collectors.groupingBy(
+                g -> (g.getSubcategoriaGasto() != null) ? g.getSubcategoriaGasto().getNombre() : "Sin subcategoría",
+                Collectors.summingDouble(GastoEntity::getMonto)
+        ));
     }
 }

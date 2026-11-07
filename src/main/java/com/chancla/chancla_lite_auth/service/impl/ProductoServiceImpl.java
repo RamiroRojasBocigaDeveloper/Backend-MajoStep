@@ -3,7 +3,9 @@ package com.chancla.chancla_lite_auth.service.impl;
 import com.chancla.chancla_lite_auth.dto.request.ProductoRequest;
 import com.chancla.chancla_lite_auth.dto.response.ProductoResponse;
 import com.chancla.chancla_lite_auth.entity.CategoriaEntity;
+import com.chancla.chancla_lite_auth.entity.MovimientoInventarioEntity;
 import com.chancla.chancla_lite_auth.entity.ProductoEntity;
+import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
 import com.chancla.chancla_lite_auth.mapper.ProductoMapper;
 import com.chancla.chancla_lite_auth.repository.CategoriaRepository;
 import com.chancla.chancla_lite_auth.repository.DetalleVentaRepository;
@@ -78,7 +80,13 @@ public class ProductoServiceImpl implements ProductoService {
         nuevoProducto.setCategoria(categoria);
         
         ProductoEntity productoGuardado = productoRepository.save(nuevoProducto);
-        
+
+        // El stock inicial de un producto nuevo es una compra real: se registra
+        // como ENTRADA para que sume a la inversión en mercancía.
+        registrarMovimiento(productoGuardado, TipoMovimiento.ENTRADA,
+                productoGuardado.getStockActual(), productoGuardado.getPrecioCompra(),
+                true, "Compra inicial al crear producto");
+
         // Registro de Auditoría
         String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
         auditoriaService.registrar(usuarioActual, "CREAR", "PRODUCTO", productoGuardado.getId(), 
@@ -105,8 +113,24 @@ public class ProductoServiceImpl implements ProductoService {
             productoExistente.setCategoria(nuevaCategoria);
         }
 
+        Integer stockAnterior = productoExistente.getStockActual() != null ? productoExistente.getStockActual() : 0;
+
         productoMapper.updateEntityFromRequest(request, productoExistente);
         ProductoEntity productoActualizado = productoRepository.save(productoExistente);
+
+        // Si el stock aumenta por edición del producto, solo la diferencia es una
+        // compra nueva y se valoriza con el precio de compra actual. El stock
+        // anterior conserva el costo con el que se compró.
+        int stockNuevo = productoActualizado.getStockActual() != null ? productoActualizado.getStockActual() : 0;
+        int diferencia = stockNuevo - stockAnterior;
+        if (diferencia > 0) {
+            registrarMovimiento(productoActualizado, TipoMovimiento.ENTRADA, diferencia,
+                    productoActualizado.getPrecioCompra(), true,
+                    "Entrada por aumento de stock (edición de producto)");
+        } else if (diferencia < 0) {
+            registrarMovimiento(productoActualizado, TipoMovimiento.SALIDA, Math.abs(diferencia),
+                    null, false, "Salida por disminución de stock (edición de producto)");
+        }
 
         // Registro de Auditoría
         String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
@@ -164,5 +188,21 @@ public class ProductoServiceImpl implements ProductoService {
                 .filter(p -> p.getStockActual() <= p.getStockMinimo())
                 .toList();
         return productoMapper.toResponseList(bajoStock);
+    }
+
+    private void registrarMovimiento(ProductoEntity producto, TipoMovimiento tipo, Integer cantidad,
+                                     Double costoUnitario, boolean esCompra, String motivo) {
+        if (cantidad == null || cantidad <= 0) {
+            return;
+        }
+
+        MovimientoInventarioEntity movimiento = new MovimientoInventarioEntity();
+        movimiento.setProducto(producto);
+        movimiento.setTipo(tipo);
+        movimiento.setCantidad(cantidad);
+        movimiento.setCostoUnitario(costoUnitario);
+        movimiento.setEsCompra(esCompra);
+        movimiento.setMotivo(motivo);
+        movimientoInventarioRepository.save(movimiento);
     }
 }
