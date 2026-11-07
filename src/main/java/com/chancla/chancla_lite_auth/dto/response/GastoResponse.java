@@ -12,6 +12,7 @@ public class GastoResponse {
     private String subcategoriaGastoNombre;
     private String descripcion;
     private Double monto;
+    private boolean esDeCaja;
     private LocalDateTime createdAt;
     private LocalDateTime fechaRegistroManual;
     private String nombreUsuario;
@@ -49,6 +50,9 @@ public class GastoResponse {
 
     public Double getMonto() { return monto; }
     public void setMonto(Double monto) { this.monto = monto; }
+
+    public boolean isEsDeCaja() { return esDeCaja; }
+    public void setEsDeCaja(boolean esDeCaja) { this.esDeCaja = esDeCaja; }
 
     public LocalDateTime getCreatedAt() { return createdAt; }
     public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
