@@ -3,14 +3,18 @@ package com.chancla.chancla_lite_auth.service.impl;
 import com.chancla.chancla_lite_auth.dto.response.DashboardResponse;
 import com.chancla.chancla_lite_auth.dto.response.EstadisticasInversionResponse;
 import com.chancla.chancla_lite_auth.dto.response.GastoResponse;
+import com.chancla.chancla_lite_auth.entity.CompraMercanciaEntity;
 import com.chancla.chancla_lite_auth.entity.DetalleVentaEntity;
 import com.chancla.chancla_lite_auth.entity.GastoEntity;
 import com.chancla.chancla_lite_auth.entity.SueldoPagadoEntity;
 import com.chancla.chancla_lite_auth.entity.VentaEntity;
+import com.chancla.chancla_lite_auth.enums.MetodoPagoCompra;
 import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
+import com.chancla.chancla_lite_auth.repository.CompraMercanciaRepository;
 import com.chancla.chancla_lite_auth.repository.DetalleVentaRepository;
 import com.chancla.chancla_lite_auth.repository.GastoRepository;
 import com.chancla.chancla_lite_auth.repository.MovimientoInventarioRepository;
+import com.chancla.chancla_lite_auth.repository.ProductoRepository;
 import com.chancla.chancla_lite_auth.repository.SueldoPagadoRepository;
 import com.chancla.chancla_lite_auth.repository.VentaRepository;
 import com.chancla.chancla_lite_auth.mapper.GastoMapper;
@@ -25,6 +29,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.stream.Collectors;
 
@@ -39,6 +44,8 @@ public class ReporteServiceImpl implements ReporteService {
     private final SueldoPagadoRepository sueldoPagadoRepository;
     private final DetalleVentaRepository detalleVentaRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
+    private final CompraMercanciaRepository compraMercanciaRepository;
+    private final ProductoRepository productoRepository;
     private final GastoMapper gastoMapper;
     private final VentaMapper ventaMapper;
 
@@ -48,6 +55,8 @@ public class ReporteServiceImpl implements ReporteService {
                               SueldoPagadoRepository sueldoPagadoRepository,
                               DetalleVentaRepository detalleVentaRepository,
                               MovimientoInventarioRepository movimientoInventarioRepository,
+                              CompraMercanciaRepository compraMercanciaRepository,
+                              ProductoRepository productoRepository,
                               GastoMapper gastoMapper,
                               VentaMapper ventaMapper) {
         this.ventaRepository = ventaRepository;
@@ -55,6 +64,8 @@ public class ReporteServiceImpl implements ReporteService {
         this.sueldoPagadoRepository = sueldoPagadoRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
+        this.compraMercanciaRepository = compraMercanciaRepository;
+        this.productoRepository = productoRepository;
         this.gastoMapper = gastoMapper;
         this.ventaMapper = ventaMapper;
     }
@@ -65,7 +76,7 @@ public class ReporteServiceImpl implements ReporteService {
         List<GastoEntity> gastos = gastoRepository.findBySesionId(sesionId);
         List<SueldoPagadoEntity> sueldos = sueldoPagadoRepository.findBySesionId(sesionId);
 
-        return construirDashboard(ventas, gastos, sueldos);
+        return construirDashboard(ventas, gastos, sueldos, List.of());
     }
 
     @Override
@@ -76,21 +87,28 @@ public class ReporteServiceImpl implements ReporteService {
         List<VentaEntity> ventas = ventaRepository.findByRangoFechas(inicioDateTime, finDateTime);
         List<GastoEntity> gastos = gastoRepository.findByRangoFechas(inicioDateTime, finDateTime);
         List<SueldoPagadoEntity> sueldos = sueldoPagadoRepository.findByFechaPagoBetween(inicio, fin);
+        List<CompraMercanciaEntity> compras = compraMercanciaRepository
+                .findByFechaBetweenOrderByFechaDescCreatedAtDesc(inicio, fin);
 
-        return construirDashboard(ventas, gastos, sueldos);
+        return construirDashboard(ventas, gastos, sueldos, compras);
     }
 
     @Override
     public DashboardResponse obtenerResumenGlobal() {
-        return construirDashboard(ventaRepository.findAll(), gastoRepository.findAll(), sueldoPagadoRepository.findAll());
+        List<CompraMercanciaEntity> compras = compraMercanciaRepository.findAllByOrderByFechaDescCreatedAtDesc();
+        return construirDashboard(ventaRepository.findAll(), gastoRepository.findAll(), sueldoPagadoRepository.findAll(), compras);
     }
 
-    private DashboardResponse construirDashboard(List<VentaEntity> ventas, List<GastoEntity> gastos, List<SueldoPagadoEntity> sueldos) {
+    private DashboardResponse construirDashboard(List<VentaEntity> ventas, List<GastoEntity> gastos,
+                                                 List<SueldoPagadoEntity> sueldos, List<CompraMercanciaEntity> compras) {
         DashboardResponse dashboard = new DashboardResponse();
-        
+
         double totalVentas = ventas.stream().mapToDouble(VentaEntity::getTotal).sum();
         double totalGastos = gastos.stream().mapToDouble(GastoEntity::getMonto).sum();
         double totalSueldos = sueldos.stream().mapToDouble(SueldoPagadoEntity::getMonto).sum();
+        double comprasMercancia = compras.stream()
+                .mapToDouble(c -> c.getMontoTotal() != null ? c.getMontoTotal() : 0.0)
+                .sum();
 
         // Cálculo de Ganancia Real basada en el Margen de los productos (PrecioVenta - PrecioCosto)
         double gananciaProductos = 0.0;
@@ -106,9 +124,42 @@ public class ReporteServiceImpl implements ReporteService {
         dashboard.setTotalSueldos(totalSueldos);
         dashboard.setGananciaProductos(gananciaProductos);
         dashboard.setCostoMercancia(costoMercancia);
-        
-        // Flujo de Caja (Efectivo en Caja) = Ventas Totales - (Gastos Operativos + Sueldos)
-        dashboard.setGananciaNeta(totalVentas - (totalGastos + totalSueldos));
+        dashboard.setComprasMercancia(comprasMercancia);
+
+        // Utilidad neta = margen de productos - gastos operativos - nómina.
+        // Las compras de mercancía NO restan utilidad: se convierten en costo cuando se venden.
+        dashboard.setUtilidadNeta(gananciaProductos - (totalGastos + totalSueldos));
+
+        // Capital disponible = dinero producido por el almacén menos gastos, nómina y compras de surtido.
+        // La inversión inicial (carga inicial de stock) NO entra aquí.
+        double capitalDisponible = totalVentas - (totalGastos + totalSueldos) - comprasMercancia;
+        dashboard.setCapitalDisponible(capitalDisponible);
+        dashboard.setGananciaNeta(capitalDisponible);
+
+        double ventasEfectivo = ventas.stream()
+                .filter(v -> v.getMetodoPago() != null && esEfectivo(v.getMetodoPago().getNombre()))
+                .mapToDouble(VentaEntity::getTotal)
+                .sum();
+        double ventasNoEfectivo = totalVentas - ventasEfectivo;
+        double gastosEfectivo = gastos.stream()
+                .filter(GastoEntity::isEsDeCaja)
+                .mapToDouble(GastoEntity::getMonto)
+                .sum();
+        double gastosNoEfectivo = totalGastos - gastosEfectivo;
+        double comprasEfectivo = compras.stream()
+                .filter(c -> MetodoPagoCompra.EFECTIVO.equals(c.getMetodoPago()))
+                .mapToDouble(c -> c.getMontoTotal() != null ? c.getMontoTotal() : 0.0)
+                .sum();
+        double comprasNoEfectivo = comprasMercancia - comprasEfectivo;
+
+        dashboard.setVentasEfectivo(ventasEfectivo);
+        dashboard.setVentasNoEfectivo(ventasNoEfectivo);
+        dashboard.setGastosEfectivo(gastosEfectivo);
+        dashboard.setGastosNoEfectivo(gastosNoEfectivo);
+        dashboard.setComprasEfectivo(comprasEfectivo);
+        dashboard.setComprasNoEfectivo(comprasNoEfectivo);
+        dashboard.setCajaNetaEfectivo(ventasEfectivo - gastosEfectivo - totalSueldos - comprasEfectivo);
+        dashboard.setCajaNetaNoEfectivo(ventasNoEfectivo - gastosNoEfectivo - comprasNoEfectivo);
         dashboard.setCantidadVentas((long) ventas.size());
 
         // Agrupación por método de pago
@@ -127,7 +178,7 @@ public class ReporteServiceImpl implements ReporteService {
         List<VentaResponse> ventasDetalladas = new java.util.ArrayList<>();
         for (VentaEntity v : ventas) {
             List<DetalleVentaEntity> detalles = detalleVentaRepository.findByVentaId(v.getId());
-            
+
             // Agregar al historial detallado
             ventasDetalladas.add(ventaMapper.toResponse(v, ventaMapper.toDetalleResponseList(detalles)));
 
@@ -145,10 +196,10 @@ public class ReporteServiceImpl implements ReporteService {
                 gananciasPorCat.put(nombreCat, gananciasPorCat.getOrDefault(nombreCat, 0.0) + margenDetalle);
             }
         }
-        
+
         ventasDetalladas.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
         dashboard.setDetalleVentas(ventasDetalladas);
-        
+
         dashboard.setProductosMasVendidos(productosFavoritos);
         dashboard.setVentasPorCategoria(ventasPorCat);
         dashboard.setGananciasPorCategoria(gananciasPorCat);
@@ -160,10 +211,10 @@ public class ReporteServiceImpl implements ReporteService {
                         Collectors.summingDouble(GastoEntity::getMonto)
                 ));
         dashboard.setGastosPorCategoria(gastosPorCat);
-        
+
         // Gastos Desglosados Jerárquicos: Categoría -> { SubItem -> Monto }
         Map<String, Map<String, Double>> gastosJerarquicos = new HashMap<>();
-        
+
         // Detalle Unificado de Egresos para la tabla individual
         List<GastoResponse> egresosDetallados = new java.util.ArrayList<>();
 
@@ -180,11 +231,11 @@ public class ReporteServiceImpl implements ReporteService {
             } else {
                 subItem = g.getDescripcion() != null ? g.getDescripcion() : "General";
             }
-            
+
             gastosJerarquicos.computeIfAbsent(catNombre, k -> new HashMap<>());
             Map<String, Double> subMap = gastosJerarquicos.get(catNombre);
             subMap.put(subItem, subMap.getOrDefault(subItem, 0.0) + g.getMonto());
-            
+
             egresosDetallados.add(gastoMapper.toResponse(g));
         }
 
@@ -192,11 +243,11 @@ public class ReporteServiceImpl implements ReporteService {
         for (SueldoPagadoEntity s : sueldos) {
             String catNombre = "Nómina";
             String subItem = (s.getUsuario() != null) ? s.getUsuario().getNombre() : "Desconocido";
-            
+
             gastosJerarquicos.computeIfAbsent(catNombre, k -> new HashMap<>());
             Map<String, Double> subMap = gastosJerarquicos.get(catNombre);
             subMap.put(subItem, subMap.getOrDefault(subItem, 0.0) + s.getMonto());
-            
+
             GastoResponse gr = new GastoResponse();
             gr.setId(s.getId());
             gr.setCategoriaGastoNombre("Nómina");
@@ -209,7 +260,7 @@ public class ReporteServiceImpl implements ReporteService {
         }
 
         dashboard.setGastosDesglosados(gastosJerarquicos);
-        
+
         // Ordenar egresos por fecha descendente
         egresosDetallados.sort((a, b) -> b.getCreatedAt().compareTo(a.getCreatedAt()));
         dashboard.setDetalleGastos(egresosDetallados);
@@ -226,24 +277,41 @@ public class ReporteServiceImpl implements ReporteService {
                 gastoRepository.findByRangoFechas(inicioDateTime, finDateTime));
 
         double gastosOperativos = sumarGastos(gastosPeriodo);
-        double inversionPeriodo = valor(movimientoInventarioRepository
-                .sumComprasEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
 
-        double inversionHastaFin = valor(movimientoInventarioRepository
-                .sumComprasHasta(TipoMovimiento.ENTRADA, finDateTime));
+        // Compras registradas: fuente única el módulo Compras.
+        // Entradas iniciales: altas de producto con stock que no vienen de una compra.
+        double comprasRegistradasPeriodo = valor(compraMercanciaRepository.sumComprasEntre(inicio, fin));
+        double entradasInicialesPeriodo = valor(movimientoInventarioRepository
+                .sumEntradasSinCompraEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+        double inversionPeriodo = comprasRegistradasPeriodo + entradasInicialesPeriodo;
+
+        double comprasRegistradasHasta = valor(compraMercanciaRepository.sumComprasHasta(fin));
+        double entradasInicialesHasta = valor(movimientoInventarioRepository
+                .sumEntradasSinCompraHasta(TipoMovimiento.ENTRADA, finDateTime));
+        double inversionHastaFin = comprasRegistradasHasta + entradasInicialesHasta;
 
         double gastosAcumulados = sumarGastos(filtrarGastosOperativos(gastoRepository.findAll()));
-        double inversionAcumulada = valor(movimientoInventarioRepository.sumCompras(TipoMovimiento.ENTRADA));
+        double inversionAcumulada = valor(compraMercanciaRepository.sumCompras())
+                + valor(movimientoInventarioRepository.sumEntradasSinCompra(TipoMovimiento.ENTRADA));
 
         EstadisticasInversionResponse response = new EstadisticasInversionResponse();
         response.setGastosOperativos(redondear(gastosOperativos));
+        response.setComprasRegistradas(redondear(comprasRegistradasPeriodo));
+        response.setEntradasIniciales(redondear(entradasInicialesPeriodo));
         response.setInversionMercanciaPeriodo(redondear(inversionPeriodo));
+        response.setSaldoInicialMercancia(0.0);
         response.setInversionMercanciaTotal(redondear(inversionHastaFin));
         response.setTotalInvertidoPeriodo(redondear(gastosOperativos + inversionPeriodo));
         response.setTotalInvertidoAcumulado(redondear(gastosAcumulados + inversionAcumulada));
+        response.setValorInventarioActual(redondear(valor(productoRepository.sumValorInventarioActual())));
+        response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
+        response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastosPeriodo));
         response.setComprasPorProducto(movimientoInventarioRepository
                 .findComprasPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+        response.setEntradasInicialesPorProducto(movimientoInventarioRepository
+                .findEntradasSinCompraPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+        response.setProductosConSaldoInicial(0);
         return response;
     }
 
@@ -252,16 +320,28 @@ public class ReporteServiceImpl implements ReporteService {
         List<GastoEntity> gastos = filtrarGastosOperativos(gastoRepository.findAll());
 
         double gastosOperativos = sumarGastos(gastos);
-        double compras = valor(movimientoInventarioRepository.sumCompras(TipoMovimiento.ENTRADA));
+        double comprasRegistradas = valor(compraMercanciaRepository.sumCompras());
+        double entradasIniciales = valor(movimientoInventarioRepository
+                .sumEntradasSinCompra(TipoMovimiento.ENTRADA));
+        double compras = comprasRegistradas + entradasIniciales;
 
         EstadisticasInversionResponse response = new EstadisticasInversionResponse();
         response.setGastosOperativos(redondear(gastosOperativos));
+        response.setComprasRegistradas(redondear(comprasRegistradas));
+        response.setEntradasIniciales(redondear(entradasIniciales));
         response.setInversionMercanciaPeriodo(redondear(compras));
+        response.setSaldoInicialMercancia(0.0);
         response.setInversionMercanciaTotal(redondear(compras));
         response.setTotalInvertidoPeriodo(redondear(gastosOperativos + compras));
         response.setTotalInvertidoAcumulado(redondear(gastosOperativos + compras));
+        response.setValorInventarioActual(redondear(valor(productoRepository.sumValorInventarioActual())));
+        response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
+        response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastos));
         response.setComprasPorProducto(movimientoInventarioRepository.findComprasPorProducto(TipoMovimiento.ENTRADA));
+        response.setEntradasInicialesPorProducto(movimientoInventarioRepository
+                .findEntradasSinCompraPorProducto(TipoMovimiento.ENTRADA));
+        response.setProductosConSaldoInicial(0);
         return response;
     }
 
@@ -276,8 +356,16 @@ public class ReporteServiceImpl implements ReporteService {
         return gastos.stream().mapToDouble(GastoEntity::getMonto).sum();
     }
 
+    private boolean esEfectivo(String nombre) {
+        return nombre != null && nombre.toLowerCase(Locale.ROOT).contains("efectivo");
+    }
+
     private double valor(Double valor) {
         return valor != null ? valor : 0.0;
+    }
+
+    private Long valorLong(Long valor) {
+        return valor != null ? valor : 0L;
     }
 
     private double redondear(double valor) {

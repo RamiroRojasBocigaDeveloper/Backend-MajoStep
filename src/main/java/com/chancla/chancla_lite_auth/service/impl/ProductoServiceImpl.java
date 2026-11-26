@@ -12,6 +12,7 @@ import com.chancla.chancla_lite_auth.repository.DetalleVentaRepository;
 import com.chancla.chancla_lite_auth.repository.MovimientoInventarioRepository;
 import com.chancla.chancla_lite_auth.repository.ProductoRepository;
 import com.chancla.chancla_lite_auth.service.AuditoriaService;
+import com.chancla.chancla_lite_auth.service.ConfiguracionInventarioService;
 import com.chancla.chancla_lite_auth.service.ProductoService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -28,6 +29,7 @@ public class ProductoServiceImpl implements ProductoService {
     private final DetalleVentaRepository detalleVentaRepository;
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final AuditoriaService auditoriaService;
+    private final ConfiguracionInventarioService configuracionInventarioService;
     private final ProductoMapper productoMapper;
 
     @Autowired
@@ -36,12 +38,14 @@ public class ProductoServiceImpl implements ProductoService {
                                DetalleVentaRepository detalleVentaRepository,
                                MovimientoInventarioRepository movimientoInventarioRepository,
                                AuditoriaService auditoriaService,
+                               ConfiguracionInventarioService configuracionInventarioService,
                                ProductoMapper productoMapper) {
         this.productoRepository = productoRepository;
         this.categoriaRepository = categoriaRepository;
         this.detalleVentaRepository = detalleVentaRepository;
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.auditoriaService = auditoriaService;
+        this.configuracionInventarioService = configuracionInventarioService;
         this.productoMapper = productoMapper;
     }
 
@@ -76,16 +80,27 @@ public class ProductoServiceImpl implements ProductoService {
         CategoriaEntity categoria = categoriaRepository.findById(request.getCategoriaId())
                 .orElseThrow(() -> new RuntimeException("Categoría no encontrada con ID: " + request.getCategoriaId()));
 
+        boolean cargaCerrada = configuracionInventarioService.isCargaInicialCerrada();
+        if (cargaCerrada && request.getStockActual() != null && request.getStockActual() > 0) {
+            throw new RuntimeException("La carga inicial de inventario ya está cerrada. Registra el stock mediante el módulo Compras.");
+        }
+
         ProductoEntity nuevoProducto = productoMapper.toEntity(request);
+        if (cargaCerrada) {
+            nuevoProducto.setStockActual(0);
+        }
         nuevoProducto.setCategoria(categoria);
-        
+
         ProductoEntity productoGuardado = productoRepository.save(nuevoProducto);
 
-        // El stock inicial de un producto nuevo es una compra real: se registra
-        // como ENTRADA para que sume a la inversión en mercancía.
-        registrarMovimiento(productoGuardado, TipoMovimiento.ENTRADA,
-                productoGuardado.getStockActual(), productoGuardado.getPrecioCompra(),
-                true, "Compra inicial al crear producto");
+        // El stock inicial de un producto nuevo se registra como ENTRADA sin
+        // referencia de compra: suma a la inversión inicial en mercancía, pero
+        // NO descuenta de la caja.
+        if (!cargaCerrada) {
+            registrarMovimiento(productoGuardado, TipoMovimiento.ENTRADA,
+                    productoGuardado.getStockActual(), productoGuardado.getPrecioCompra(),
+                    true, "Alta de producto - stock inicial");
+        }
 
         // Registro de Auditoría
         String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();
@@ -116,21 +131,13 @@ public class ProductoServiceImpl implements ProductoService {
         Integer stockAnterior = productoExistente.getStockActual() != null ? productoExistente.getStockActual() : 0;
 
         productoMapper.updateEntityFromRequest(request, productoExistente);
+        if (configuracionInventarioService.isCargaInicialCerrada()) {
+            productoExistente.setStockActual(stockAnterior);
+        }
         ProductoEntity productoActualizado = productoRepository.save(productoExistente);
 
-        // Si el stock aumenta por edición del producto, solo la diferencia es una
-        // compra nueva y se valoriza con el precio de compra actual. El stock
-        // anterior conserva el costo con el que se compró.
-        int stockNuevo = productoActualizado.getStockActual() != null ? productoActualizado.getStockActual() : 0;
-        int diferencia = stockNuevo - stockAnterior;
-        if (diferencia > 0) {
-            registrarMovimiento(productoActualizado, TipoMovimiento.ENTRADA, diferencia,
-                    productoActualizado.getPrecioCompra(), true,
-                    "Entrada por aumento de stock (edición de producto)");
-        } else if (diferencia < 0) {
-            registrarMovimiento(productoActualizado, TipoMovimiento.SALIDA, Math.abs(diferencia),
-                    null, false, "Salida por disminución de stock (edición de producto)");
-        }
+        // El stock no se ajusta al editar el producto: se gestiona únicamente
+        // por el módulo Compras (o por la carga inicial antes del corte).
 
         // Registro de Auditoría
         String usuarioActual = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getName();

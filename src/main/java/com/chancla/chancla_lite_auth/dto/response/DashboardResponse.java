@@ -9,6 +9,17 @@ public class DashboardResponse {
     private Double totalGastos;
     private Double totalSueldos;
     private Double gananciaNeta;
+    private Double utilidadNeta;
+    private Double capitalDisponible;
+    private Double comprasMercancia;
+    private Double ventasEfectivo;
+    private Double ventasNoEfectivo;
+    private Double gastosEfectivo;
+    private Double gastosNoEfectivo;
+    private Double comprasEfectivo;
+    private Double comprasNoEfectivo;
+    private Double cajaNetaEfectivo;
+    private Double cajaNetaNoEfectivo;
     private Long cantidadVentas;
     private Double gananciaProductos;
     private Double costoMercancia;
@@ -24,7 +35,6 @@ public class DashboardResponse {
     public DashboardResponse() {
     }
 
-    // Getters y Setters
     public Double getTotalVentas() { return totalVentas; }
     public void setTotalVentas(Double totalVentas) { this.totalVentas = totalVentas; }
 
@@ -36,6 +46,39 @@ public class DashboardResponse {
 
     public Double getGananciaNeta() { return gananciaNeta; }
     public void setGananciaNeta(Double gananciaNeta) { this.gananciaNeta = gananciaNeta; }
+
+    public Double getUtilidadNeta() { return utilidadNeta; }
+    public void setUtilidadNeta(Double utilidadNeta) { this.utilidadNeta = utilidadNeta; }
+
+    public Double getCapitalDisponible() { return capitalDisponible; }
+    public void setCapitalDisponible(Double capitalDisponible) { this.capitalDisponible = capitalDisponible; }
+
+    public Double getComprasMercancia() { return comprasMercancia; }
+    public void setComprasMercancia(Double comprasMercancia) { this.comprasMercancia = comprasMercancia; }
+
+    public Double getVentasEfectivo() { return ventasEfectivo; }
+    public void setVentasEfectivo(Double ventasEfectivo) { this.ventasEfectivo = ventasEfectivo; }
+
+    public Double getVentasNoEfectivo() { return ventasNoEfectivo; }
+    public void setVentasNoEfectivo(Double ventasNoEfectivo) { this.ventasNoEfectivo = ventasNoEfectivo; }
+
+    public Double getGastosEfectivo() { return gastosEfectivo; }
+    public void setGastosEfectivo(Double gastosEfectivo) { this.gastosEfectivo = gastosEfectivo; }
+
+    public Double getGastosNoEfectivo() { return gastosNoEfectivo; }
+    public void setGastosNoEfectivo(Double gastosNoEfectivo) { this.gastosNoEfectivo = gastosNoEfectivo; }
+
+    public Double getComprasEfectivo() { return comprasEfectivo; }
+    public void setComprasEfectivo(Double comprasEfectivo) { this.comprasEfectivo = comprasEfectivo; }
+
+    public Double getComprasNoEfectivo() { return comprasNoEfectivo; }
+    public void setComprasNoEfectivo(Double comprasNoEfectivo) { this.comprasNoEfectivo = comprasNoEfectivo; }
+
+    public Double getCajaNetaEfectivo() { return cajaNetaEfectivo; }
+    public void setCajaNetaEfectivo(Double cajaNetaEfectivo) { this.cajaNetaEfectivo = cajaNetaEfectivo; }
+
+    public Double getCajaNetaNoEfectivo() { return cajaNetaNoEfectivo; }
+    public void setCajaNetaNoEfectivo(Double cajaNetaNoEfectivo) { this.cajaNetaNoEfectivo = cajaNetaNoEfectivo; }
 
     public Long getCantidadVentas() { return cantidadVentas; }
     public void setCantidadVentas(Long cantidadVentas) { this.cantidadVentas = cantidadVentas; }
