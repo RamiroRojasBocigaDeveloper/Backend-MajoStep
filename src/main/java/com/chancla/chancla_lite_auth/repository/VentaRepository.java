@@ -27,4 +27,7 @@ public interface VentaRepository extends JpaRepository<VentaEntity, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"detalles", "sesion", "sesion.usuario", "metodoPago"})
     @Query("SELECT v FROM VentaEntity v WHERE COALESCE(v.fechaRegistroManual, v.createdAt) BETWEEN :inicio AND :fin")
     List<VentaEntity> findByRangoFechas(@Param("inicio") LocalDateTime inicio, @Param("fin") LocalDateTime fin);
+
+    @Query("SELECT COALESCE(SUM(v.total), 0.0) FROM VentaEntity v")
+    Double sumTotalVentas();
 }

@@ -26,4 +26,18 @@ public interface CompraMercanciaRepository extends JpaRepository<CompraMercancia
 
     @Query("SELECT COALESCE(SUM(c.montoTotal), 0.0) FROM CompraMercanciaEntity c")
     Double sumCompras();
+
+    @Query("SELECT COALESCE(c.proveedor, 'Sin proveedor'), COALESCE(SUM(c.montoTotal), 0.0) " +
+            "FROM CompraMercanciaEntity c " +
+            "GROUP BY COALESCE(c.proveedor, 'Sin proveedor') " +
+            "ORDER BY SUM(c.montoTotal) DESC")
+    List<Object[]> sumComprasPorProveedor();
+
+    @Query("SELECT COALESCE(c.proveedor, 'Sin proveedor'), COALESCE(SUM(c.montoTotal), 0.0) " +
+            "FROM CompraMercanciaEntity c " +
+            "WHERE c.fecha BETWEEN :inicio AND :fin " +
+            "GROUP BY COALESCE(c.proveedor, 'Sin proveedor') " +
+            "ORDER BY SUM(c.montoTotal) DESC")
+    List<Object[]> sumComprasPorProveedorEntre(@Param("inicio") LocalDate inicio,
+                                               @Param("fin") LocalDate fin);
 }

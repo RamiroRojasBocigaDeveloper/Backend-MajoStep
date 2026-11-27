@@ -9,8 +9,8 @@ public class DashboardResponse {
     private Double totalGastos;
     private Double totalSueldos;
     private Double gananciaNeta;
+    private Double flujoCajaNetoGlobal;
     private Double utilidadNeta;
-    private Double capitalDisponible;
     private Double comprasMercancia;
     private Double ventasEfectivo;
     private Double ventasNoEfectivo;
@@ -21,9 +21,12 @@ public class DashboardResponse {
     private Double cajaNetaEfectivo;
     private Double cajaNetaNoEfectivo;
     private Long cantidadVentas;
+    private Double ticketPromedio;
+    private Double margenPorcentaje;
     private Double gananciaProductos;
     private Double costoMercancia;
     private Map<String, Double> ventasPorMetodoPago;
+    private Map<String, Double> ventasPorVendedor;
     private Map<String, Double> ventasPorCategoria;
     private Map<String, Double> gananciasPorCategoria;
     private Map<String, Double> gastosPorCategoria;
@@ -47,11 +50,11 @@ public class DashboardResponse {
     public Double getGananciaNeta() { return gananciaNeta; }
     public void setGananciaNeta(Double gananciaNeta) { this.gananciaNeta = gananciaNeta; }
 
+    public Double getFlujoCajaNetoGlobal() { return flujoCajaNetoGlobal; }
+    public void setFlujoCajaNetoGlobal(Double flujoCajaNetoGlobal) { this.flujoCajaNetoGlobal = flujoCajaNetoGlobal; }
+
     public Double getUtilidadNeta() { return utilidadNeta; }
     public void setUtilidadNeta(Double utilidadNeta) { this.utilidadNeta = utilidadNeta; }
-
-    public Double getCapitalDisponible() { return capitalDisponible; }
-    public void setCapitalDisponible(Double capitalDisponible) { this.capitalDisponible = capitalDisponible; }
 
     public Double getComprasMercancia() { return comprasMercancia; }
     public void setComprasMercancia(Double comprasMercancia) { this.comprasMercancia = comprasMercancia; }
@@ -83,8 +86,17 @@ public class DashboardResponse {
     public Long getCantidadVentas() { return cantidadVentas; }
     public void setCantidadVentas(Long cantidadVentas) { this.cantidadVentas = cantidadVentas; }
 
+    public Double getTicketPromedio() { return ticketPromedio; }
+    public void setTicketPromedio(Double ticketPromedio) { this.ticketPromedio = ticketPromedio; }
+
+    public Double getMargenPorcentaje() { return margenPorcentaje; }
+    public void setMargenPorcentaje(Double margenPorcentaje) { this.margenPorcentaje = margenPorcentaje; }
+
     public Map<String, Double> getVentasPorMetodoPago() { return ventasPorMetodoPago; }
     public void setVentasPorMetodoPago(Map<String, Double> ventasPorMetodoPago) { this.ventasPorMetodoPago = ventasPorMetodoPago; }
+
+    public Map<String, Double> getVentasPorVendedor() { return ventasPorVendedor; }
+    public void setVentasPorVendedor(Map<String, Double> ventasPorVendedor) { this.ventasPorVendedor = ventasPorVendedor; }
 
     public Map<String, Double> getVentasPorCategoria() { return ventasPorCategoria; }
     public void setVentasPorCategoria(Map<String, Double> ventasPorCategoria) { this.ventasPorCategoria = ventasPorCategoria; }

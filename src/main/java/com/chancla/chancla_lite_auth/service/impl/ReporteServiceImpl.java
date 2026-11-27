@@ -130,11 +130,18 @@ public class ReporteServiceImpl implements ReporteService {
         // Las compras de mercancía NO restan utilidad: se convierten en costo cuando se venden.
         dashboard.setUtilidadNeta(gananciaProductos - (totalGastos + totalSueldos));
 
-        // Capital disponible = dinero producido por el almacén menos gastos, nómina y compras de surtido.
-        // La inversión inicial (carga inicial de stock) NO entra aquí.
-        double capitalDisponible = totalVentas - (totalGastos + totalSueldos) - comprasMercancia;
-        dashboard.setCapitalDisponible(capitalDisponible);
-        dashboard.setGananciaNeta(capitalDisponible);
+        // Flujo de caja neto = dinero producido por el almacén menos gastos, nómina y compras de surtido.
+        // La inversión inicial (carga inicial de stock) NO entra aquí porque no salió dinero del almacén.
+        double gananciaNeta = totalVentas - (totalGastos + totalSueldos) - comprasMercancia;
+        dashboard.setGananciaNeta(gananciaNeta);
+
+        // Flujo de caja neto acumulado (histórico): NO depende del rango de fechas.
+        // Responde "cuánto dinero debería haber en caja hoy" según todo lo registrado.
+        // Misma lógica que gananciaNeta, pero sobre TODOS los datos del almacén.
+        double flujoCajaNetoGlobal = valor(ventaRepository.sumTotalVentas())
+                - (valor(gastoRepository.sumTotalGastos()) + valor(sueldoPagadoRepository.sumTotalSueldos()))
+                - valor(compraMercanciaRepository.sumCompras());
+        dashboard.setFlujoCajaNetoGlobal(flujoCajaNetoGlobal);
 
         double ventasEfectivo = ventas.stream()
                 .filter(v -> v.getMetodoPago() != null && esEfectivo(v.getMetodoPago().getNombre()))
@@ -161,14 +168,25 @@ public class ReporteServiceImpl implements ReporteService {
         dashboard.setCajaNetaEfectivo(ventasEfectivo - gastosEfectivo - totalSueldos - comprasEfectivo);
         dashboard.setCajaNetaNoEfectivo(ventasNoEfectivo - gastosNoEfectivo - comprasNoEfectivo);
         dashboard.setCantidadVentas((long) ventas.size());
+        dashboard.setTicketPromedio(ventas.isEmpty() ? 0.0 : totalVentas / ventas.size());
+        dashboard.setMargenPorcentaje(totalVentas > 0 ? (gananciaProductos / totalVentas) * 100.0 : 0.0);
 
-        // Agrupación por método de pago
+        // Agrupación por método de pago (tolerante a ventas sin método).
         Map<String, Double> ventasPorMetodo = ventas.stream()
                 .collect(Collectors.groupingBy(
-                        v -> v.getMetodoPago().getNombre(),
+                        v -> (v.getMetodoPago() != null) ? v.getMetodoPago().getNombre() : "Sin método",
                         Collectors.summingDouble(VentaEntity::getTotal)
                 ));
         dashboard.setVentasPorMetodoPago(ventasPorMetodo);
+
+        // Agrupación de ventas por vendedor (nombre del usuario de la sesión).
+        Map<String, Double> ventasPorVendedor = ventas.stream()
+                .collect(Collectors.groupingBy(
+                        v -> (v.getSesion() != null && v.getSesion().getUsuario() != null)
+                                ? v.getSesion().getUsuario().getNombre() : "Sin vendedor",
+                        Collectors.summingDouble(VentaEntity::getTotal)
+                ));
+        dashboard.setVentasPorVendedor(ventasPorVendedor);
 
         // Agrupación por Categoría y Productos más vendidos
         Map<String, Long> productosFavoritos = new HashMap<>();
@@ -299,19 +317,16 @@ public class ReporteServiceImpl implements ReporteService {
         response.setComprasRegistradas(redondear(comprasRegistradasPeriodo));
         response.setEntradasIniciales(redondear(entradasInicialesPeriodo));
         response.setInversionMercanciaPeriodo(redondear(inversionPeriodo));
-        response.setSaldoInicialMercancia(0.0);
         response.setInversionMercanciaTotal(redondear(inversionHastaFin));
         response.setTotalInvertidoPeriodo(redondear(gastosOperativos + inversionPeriodo));
         response.setTotalInvertidoAcumulado(redondear(gastosAcumulados + inversionAcumulada));
-        response.setValorInventarioActual(redondear(valor(productoRepository.sumValorInventarioActual())));
+        aplicarValorInventario(response);
         response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
         response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastosPeriodo));
-        response.setComprasPorProducto(movimientoInventarioRepository
-                .findComprasPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
+        response.setComprasPorProveedor(aMapa(compraMercanciaRepository.sumComprasPorProveedorEntre(inicio, fin)));
         response.setEntradasInicialesPorProducto(movimientoInventarioRepository
                 .findEntradasSinCompraPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
-        response.setProductosConSaldoInicial(0);
         return response;
     }
 
@@ -330,18 +345,16 @@ public class ReporteServiceImpl implements ReporteService {
         response.setComprasRegistradas(redondear(comprasRegistradas));
         response.setEntradasIniciales(redondear(entradasIniciales));
         response.setInversionMercanciaPeriodo(redondear(compras));
-        response.setSaldoInicialMercancia(0.0);
         response.setInversionMercanciaTotal(redondear(compras));
         response.setTotalInvertidoPeriodo(redondear(gastosOperativos + compras));
         response.setTotalInvertidoAcumulado(redondear(gastosOperativos + compras));
-        response.setValorInventarioActual(redondear(valor(productoRepository.sumValorInventarioActual())));
+        aplicarValorInventario(response);
         response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
         response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastos));
-        response.setComprasPorProducto(movimientoInventarioRepository.findComprasPorProducto(TipoMovimiento.ENTRADA));
+        response.setComprasPorProveedor(aMapa(compraMercanciaRepository.sumComprasPorProveedor()));
         response.setEntradasInicialesPorProducto(movimientoInventarioRepository
                 .findEntradasSinCompraPorProducto(TipoMovimiento.ENTRADA));
-        response.setProductosConSaldoInicial(0);
         return response;
     }
 
@@ -377,5 +390,28 @@ public class ReporteServiceImpl implements ReporteService {
                 g -> (g.getSubcategoriaGasto() != null) ? g.getSubcategoriaGasto().getNombre() : "Sin subcategoría",
                 Collectors.summingDouble(GastoEntity::getMonto)
         ));
+    }
+
+    /**
+     * Valor del inventario actual: a costo (precioCompra) y a precio de venta.
+     * El valor a costo es el que se usa para saber cuánto dinero hay en mercancía
+     * (incluye el cargue inicial y las compras posteriores, valorado al costo).
+     */
+    private void aplicarValorInventario(EstadisticasInversionResponse response) {
+        double valorCosto = valor(productoRepository.sumValorInventarioActual());
+        double valorVenta = valor(productoRepository.sumValorInventarioVenta());
+        response.setValorInventarioActual(redondear(valorCosto));
+        response.setValorInventarioVenta(redondear(valorVenta));
+        response.setValorPotencialGanancia(redondear(valorVenta - valorCosto));
+    }
+
+    private Map<String, Double> aMapa(List<Object[]> filas) {
+        Map<String, Double> resultado = new java.util.LinkedHashMap<>();
+        for (Object[] fila : filas) {
+            String clave = fila[0] != null ? fila[0].toString() : "Sin proveedor";
+            double monto = fila[1] != null ? ((Number) fila[1]).doubleValue() : 0.0;
+            resultado.merge(clave, monto, Double::sum);
+        }
+        return resultado;
     }
 }

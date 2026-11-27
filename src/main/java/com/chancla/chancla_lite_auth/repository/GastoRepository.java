@@ -23,4 +23,7 @@ public interface GastoRepository extends JpaRepository<GastoEntity, Long> {
     @org.springframework.data.jpa.repository.EntityGraph(attributePaths = {"categoriaGasto", "subcategoriaGasto", "sesion", "sesion.usuario"})
     @Query("SELECT g FROM GastoEntity g WHERE COALESCE(g.fechaRegistroManual, g.createdAt) BETWEEN :start AND :end")
     List<GastoEntity> findByRangoFechas(@Param("start") LocalDateTime start, @Param("end") LocalDateTime end);
+
+    @Query("SELECT COALESCE(SUM(g.monto), 0.0) FROM GastoEntity g")
+    Double sumTotalGastos();
 }

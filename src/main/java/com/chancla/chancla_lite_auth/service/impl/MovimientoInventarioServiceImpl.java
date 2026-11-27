@@ -83,12 +83,14 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
         movimento.setProducto(producto);
         movimento.setTipo(tipo);
 
-        // Solo las entradas reales de compra cuentan para la inversión en mercancía.
-        // Los reversos de edición de venta crean ENTRADA directamente en VentaServiceImpl
-        // y se quedan con esCompra = false.
+        // Las entradas manuales de inventario NO vienen del módulo Compras: se
+        // marcan con esCompra = false para que cuenten una sola vez como
+        // "entrada sin compra" en la inversión (y no se dupliquen con las
+        // compras registradas). Los reversos de edición de venta también quedan
+        // con esCompra = false pero con referenciaId, por lo que se excluyen.
         if (tipo == TipoMovimiento.ENTRADA) {
             movimento.setCostoUnitario(request.getNuevoPrecioCompra());
-            movimento.setEsCompra(Boolean.TRUE);
+            movimento.setEsCompra(Boolean.FALSE);
         }
 
         MovimientoInventarioEntity guardado = movimientoInventarioRepository.save(movimento);

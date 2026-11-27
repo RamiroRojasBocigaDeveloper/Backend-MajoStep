@@ -2,6 +2,7 @@ package com.chancla.chancla_lite_auth.repository;
 
 import com.chancla.chancla_lite_auth.entity.SueldoPagadoEntity;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDate;
@@ -13,4 +14,7 @@ public interface SueldoPagadoRepository extends JpaRepository<SueldoPagadoEntity
     List<SueldoPagadoEntity> findBySesionId(Long sesionId);
     List<SueldoPagadoEntity> findByFechaPagoBetween(LocalDate fechaInicio, LocalDate fechaFin);
     boolean existsByUsuarioIdAndFechaPago(Long usuarioId, LocalDate fechaPago);
+
+    @Query("SELECT COALESCE(SUM(s.monto), 0.0) FROM SueldoPagadoEntity s")
+    Double sumTotalSueldos();
 }

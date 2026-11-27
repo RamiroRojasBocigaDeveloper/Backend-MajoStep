@@ -94,12 +94,13 @@ public class ProductoServiceImpl implements ProductoService {
         ProductoEntity productoGuardado = productoRepository.save(nuevoProducto);
 
         // El stock inicial de un producto nuevo se registra como ENTRADA sin
-        // referencia de compra: suma a la inversión inicial en mercancía, pero
-        // NO descuenta de la caja.
+        // referencia de compra y con esCompra = false: suma a la inversión en
+        // mercancía (cargue inicial), pero NO descuenta de la caja y NO se
+        // confunde con una compra registrada en el módulo Compras.
         if (!cargaCerrada) {
             registrarMovimiento(productoGuardado, TipoMovimiento.ENTRADA,
                     productoGuardado.getStockActual(), productoGuardado.getPrecioCompra(),
-                    true, "Alta de producto - stock inicial");
+                    false, "Alta de producto - stock inicial");
         }
 
         // Registro de Auditoría
