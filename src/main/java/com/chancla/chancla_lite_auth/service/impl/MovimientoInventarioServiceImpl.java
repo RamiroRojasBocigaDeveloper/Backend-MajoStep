@@ -8,6 +8,7 @@ import com.chancla.chancla_lite_auth.enums.TipoMovimiento;
 import com.chancla.chancla_lite_auth.mapper.MovimientoInventarioMapper;
 import com.chancla.chancla_lite_auth.repository.MovimientoInventarioRepository;
 import com.chancla.chancla_lite_auth.repository.ProductoRepository;
+import com.chancla.chancla_lite_auth.service.ConfiguracionInventarioService;
 import com.chancla.chancla_lite_auth.service.MovimientoInventarioService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -22,14 +23,17 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
     private final MovimientoInventarioRepository movimientoInventarioRepository;
     private final ProductoRepository productoRepository;
     private final MovimientoInventarioMapper movimientoInventarioMapper;
+    private final ConfiguracionInventarioService configuracionInventarioService;
 
     @Autowired
     public MovimientoInventarioServiceImpl(MovimientoInventarioRepository movimientoInventarioRepository,
                                            ProductoRepository productoRepository,
-                                           MovimientoInventarioMapper movimientoInventarioMapper) {
+                                           MovimientoInventarioMapper movimientoInventarioMapper,
+                                           ConfiguracionInventarioService configuracionInventarioService) {
         this.movimientoInventarioRepository = movimientoInventarioRepository;
         this.productoRepository = productoRepository;
         this.movimientoInventarioMapper = movimientoInventarioMapper;
+        this.configuracionInventarioService = configuracionInventarioService;
     }
 
     @Override
@@ -38,6 +42,14 @@ public class MovimientoInventarioServiceImpl implements MovimientoInventarioServ
                 .orElseThrow(() -> new RuntimeException("Producto no encontrado ID: " + request.getProductoId()));
 
         TipoMovimiento tipo = TipoMovimiento.valueOf(request.getTipo().toUpperCase());
+
+        // Con la carga inicial cerrada, la mercancía solo puede ingresar por el
+        // módulo Compras (que registra el movimiento con esCompra = true). Las
+        // entradas manuales de inventario dejarían de contar como inversión
+        // inicial y descuadrarían la inversión, por eso se bloquean.
+        if (tipo == TipoMovimiento.ENTRADA && configuracionInventarioService.isCargaInicialCerrada()) {
+            throw new RuntimeException("La carga inicial de inventario ya está cerrada. Registra la entrada de mercancía mediante el módulo Compras.");
+        }
 
         // Una entrada de inventario representa una compra: el costo unitario es obligatorio
         // para poder sumarla a la inversión en mercancía.

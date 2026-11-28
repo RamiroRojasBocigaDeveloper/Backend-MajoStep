@@ -324,6 +324,7 @@ public class ReporteServiceImpl implements ReporteService {
         response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
         response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastosPeriodo));
+        response.setGastosOperativosDetalle(gastoMapper.toResponseList(ordenarGastosPorFechaDesc(gastosPeriodo)));
         response.setComprasPorProveedor(aMapa(compraMercanciaRepository.sumComprasPorProveedorEntre(inicio, fin)));
         response.setEntradasInicialesPorProducto(movimientoInventarioRepository
                 .findEntradasSinCompraPorProductoEntre(TipoMovimiento.ENTRADA, inicioDateTime, finDateTime));
@@ -352,6 +353,7 @@ public class ReporteServiceImpl implements ReporteService {
         response.setUnidadesInventarioActual(valorLong(productoRepository.sumUnidadesInventarioActual()));
         response.setProductosConStock(valorLong(productoRepository.countProductosConStock()).intValue());
         response.setGastosOperativosPorSubcategoria(agruparGastosPorSubcategoria(gastos));
+        response.setGastosOperativosDetalle(gastoMapper.toResponseList(ordenarGastosPorFechaDesc(gastos)));
         response.setComprasPorProveedor(aMapa(compraMercanciaRepository.sumComprasPorProveedor()));
         response.setEntradasInicialesPorProducto(movimientoInventarioRepository
                 .findEntradasSinCompraPorProducto(TipoMovimiento.ENTRADA));
@@ -362,6 +364,25 @@ public class ReporteServiceImpl implements ReporteService {
         return gastos.stream()
                 .filter(g -> g.getCategoriaGasto() != null
                         && CATEGORIA_GASTOS_OPERATIVOS.equalsIgnoreCase(g.getCategoriaGasto().getNombre()))
+                .toList();
+    }
+
+    private List<GastoEntity> ordenarGastosPorFechaDesc(List<GastoEntity> gastos) {
+        return gastos.stream()
+                .sorted((a, b) -> {
+                    LocalDateTime fa = a.getFechaRegistroManual() != null ? a.getFechaRegistroManual() : a.getCreatedAt();
+                    LocalDateTime fb = b.getFechaRegistroManual() != null ? b.getFechaRegistroManual() : b.getCreatedAt();
+                    if (fa == null && fb == null) {
+                        return 0;
+                    }
+                    if (fa == null) {
+                        return 1;
+                    }
+                    if (fb == null) {
+                        return -1;
+                    }
+                    return fb.compareTo(fa);
+                })
                 .toList();
     }
 

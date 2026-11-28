@@ -18,6 +18,7 @@ public class EstadisticasInversionResponse {
     private Long unidadesInventarioActual;
     private Integer productosConStock;
     private Map<String, Double> gastosOperativosPorSubcategoria;
+    private List<GastoResponse> gastosOperativosDetalle;
     private Map<String, Double> comprasPorProveedor;
     private List<InversionProductoDTO> entradasInicialesPorProducto;
 
@@ -62,6 +63,9 @@ public class EstadisticasInversionResponse {
 
     public Map<String, Double> getGastosOperativosPorSubcategoria() { return gastosOperativosPorSubcategoria; }
     public void setGastosOperativosPorSubcategoria(Map<String, Double> gastosOperativosPorSubcategoria) { this.gastosOperativosPorSubcategoria = gastosOperativosPorSubcategoria; }
+
+    public List<GastoResponse> getGastosOperativosDetalle() { return gastosOperativosDetalle; }
+    public void setGastosOperativosDetalle(List<GastoResponse> gastosOperativosDetalle) { this.gastosOperativosDetalle = gastosOperativosDetalle; }
 
     public Map<String, Double> getComprasPorProveedor() { return comprasPorProveedor; }
     public void setComprasPorProveedor(Map<String, Double> comprasPorProveedor) { this.comprasPorProveedor = comprasPorProveedor; }
